@@ -15,7 +15,7 @@ HXShaderInput solar_system_rings_mask_inputs[4];
 HXShaderInput planets_far_mask_inputs[2];
 HXShaderInput planets_near_mask_inputs[2];
 HXShaderInput planets_texture_gen_inputs[1 + _PLANET_TEXTURE_COUNT*2];
-HXShaderInput taa_pass_inputs[4];
+HXShaderInput taa_pass_inputs[3];
 
 const size_t c_galaxy_shape_map_size = 512;
 
@@ -26,61 +26,53 @@ const size_t c_galaxy_shape_map_size = 512;
 
 void UniverseRenderer::SetupShaderInputs(Application& app){
 
-	/// setup shader inputs
-	galaxy_mask_inputs[0] = { app.hxg.GetUniform(galaxies.rfar.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	galaxy_mask_inputs[1] = { app.hxg.GetUniform(galaxies.rfar.pipeline, "GalaxyPositions"), app.hxg.GetData(app.universe.galaxy_psys.gpu_buffer) };
-	galaxy_mask_inputs[2] = { app.hxg.GetUniform(galaxies.rfar.pipeline, "whitenoise"), app.hxg.GetData(app.whiteNoise2DTex), &app.linearSampler };
-	galaxy_mask_inputs[3] = { app.hxg.GetUniform(galaxies.rfar.pipeline, "CurrentSeedsCBuffer"), app.hxg.GetData(cur_seeds_buff) };
+    /// setup shader inputs
+    galaxy_mask_inputs[0] = { app.hxg.GetUniform(galaxies.rfar_pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    galaxy_mask_inputs[1] = { app.hxg.GetUniform(galaxies.rfar_pipeline, "GalaxyPositions"), app.hxg.GetData(app.universe.galaxy_psys.gpu_buffer) };
+    galaxy_mask_inputs[2] = { app.hxg.GetUniform(galaxies.rfar_pipeline, "whitenoise"), app.hxg.GetData(app.whiteNoise2DTex), &app.linearSampler };
+    galaxy_mask_inputs[3] = { app.hxg.GetUniform(galaxies.rfar_pipeline, "CurrentSeedsCBuffer"), app.hxg.GetData(cur_seeds_buff) };
 
 
-	galaxy_mask_near_inputs[0] = { app.hxg.GetUniform(galaxies.rnear.pipeline, "RenderPos"), &(app.universe.galaxy_psys.GetClosestParticle().renderpos) };
-	galaxy_mask_near_inputs[1] = { app.hxg.GetUniform(galaxies.rnear.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	galaxy_mask_near_inputs[2] = { app.hxg.GetUniform(galaxies.rnear.pipeline, "whitenoise"), app.hxg.GetData(app.whiteNoise2DTex), &app.linearSampler };
-	galaxy_mask_near_inputs[3] = { app.hxg.GetUniform(galaxies.rnear.pipeline, "bluenoise"), app.hxg.GetData(app.blueNoise2DTex), &app.nearestSampler };
-	galaxy_mask_near_inputs[4] = { app.hxg.GetUniform(galaxies.rnear.pipeline, "CurrentGalaxyPropsCBuffer"), app.hxg.GetData(galaxies.current_props) };
-	galaxy_mask_near_inputs[5] = { app.hxg.GetUniform(galaxies.rnear.pipeline, "outTex"), app.hxg.GetData(galaxies.rnear.rendertex) };
+    galaxy_mask_near_inputs[0] = { app.hxg.GetUniform(galaxies.rnear_pipeline, "RenderPos"), &(app.universe.galaxy_psys.GetClosestParticle().renderpos) };
+    galaxy_mask_near_inputs[1] = { app.hxg.GetUniform(galaxies.rnear_pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    galaxy_mask_near_inputs[2] = { app.hxg.GetUniform(galaxies.rnear_pipeline, "whitenoise"), app.hxg.GetData(app.whiteNoise2DTex), &app.linearSampler };
+    galaxy_mask_near_inputs[3] = { app.hxg.GetUniform(galaxies.rnear_pipeline, "bluenoise"), app.hxg.GetData(app.blueNoise2DTex), &app.nearestSampler };
+    galaxy_mask_near_inputs[4] = { app.hxg.GetUniform(galaxies.rnear_pipeline, "CurrentGalaxyPropsCBuffer"), app.hxg.GetData(galaxies.current_props) };
+    galaxy_mask_near_inputs[5] = { app.hxg.GetUniform(galaxies.rnear_pipeline, "outTex"), app.hxg.GetData(GetRaymarchPassTex()) };
+
+    stars_mask_inputs[0] = { app.hxg.GetUniform(stars.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    stars_mask_inputs[1] = { app.hxg.GetUniform(stars.pipeline, "CurrentSeedsCBuffer"), app.hxg.GetData(cur_seeds_buff) };
+    stars_mask_inputs[2] = { app.hxg.GetUniform(stars.pipeline, "StarPositions"), app.hxg.GetData(app.universe.stars_psys.grid.GetBuffer()) };
+    stars_mask_inputs[3] = { app.hxg.GetUniform(stars.pipeline, "StarBlocks"), app.hxg.GetData(app.universe.stars_psys.local_renderpos) };
+    stars_mask_inputs[4] = { app.hxg.GetUniform(stars.pipeline, "StarHeader"), app.hxg.GetData(app.universe.stars_psys.grid.GetClosestBuffer()) };
+    stars_mask_inputs[5] = { app.hxg.GetUniform(stars.pipeline, "StarRenderpos"), &(app.universe.stars_psys.closest_renderpos) };
 
 
-	// cluster_mask_inputs[0] = { app.hxg.GetUniform(nebulae.rnear.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	// cluster_mask_inputs[1] = { app.hxg.GetUniform(nebulae.rnear.pipeline, "ClusterPositions"), app.hxg.GetData(app.universe.cluster_psys.gpu_buffer) };
-	// cluster_mask_inputs[2] = { app.hxg.GetUniform(nebulae.rnear.pipeline, "whitenoise"), app.hxg.GetData(app.whiteNoise2DTex), &app.linearSampler };
-	// cluster_mask_inputs[3] = { app.hxg.GetUniform(nebulae.rnear.pipeline, "bluenoise"), app.hxg.GetData(app.blueNoise2DTex) };
+    solar_system_rings_mask_inputs[0] = { app.hxg.GetUniform(solar_system.rings_pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    solar_system_rings_mask_inputs[1] = { app.hxg.GetUniform(solar_system.rings_pipeline, "SolarSystemPropertiesCBuff"), app.hxg.GetData(solar_system.props) };
+    solar_system_rings_mask_inputs[2] = { app.hxg.GetUniform(solar_system.rings_pipeline, "SolarSystemOrbitsCBuff"), app.hxg.GetData(solar_system.orbits) };
+    solar_system_rings_mask_inputs[3] = { app.hxg.GetUniform(solar_system.rings_pipeline, "SolarSystemOrbitsUpdateCBuff"), app.hxg.GetData(solar_system.orbit_updates) };
 
 
-	stars_mask_inputs[0] = { app.hxg.GetUniform(stars.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	stars_mask_inputs[1] = { app.hxg.GetUniform(stars.pipeline, "CurrentSeedsCBuffer"), app.hxg.GetData(cur_seeds_buff) };
-	stars_mask_inputs[2] = { app.hxg.GetUniform(stars.pipeline, "StarPositions"), app.hxg.GetData(app.universe.stars_psys.grid.GetBuffer()) };
-	stars_mask_inputs[3] = { app.hxg.GetUniform(stars.pipeline, "StarBlocks"), app.hxg.GetData(app.universe.stars_psys.local_renderpos) };
-	stars_mask_inputs[4] = { app.hxg.GetUniform(stars.pipeline, "StarHeader"), app.hxg.GetData(app.universe.stars_psys.grid.GetClosestBuffer()) };
-	stars_mask_inputs[5] = { app.hxg.GetUniform(stars.pipeline, "StarRenderpos"), &(app.universe.stars_psys.closest_renderpos) };
+    planets_far_mask_inputs[0] = { app.hxg.GetUniform(planets.rfar_pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    planets_far_mask_inputs[1] = { app.hxg.GetUniform(planets.rfar_pipeline, "SolarSystemPropertiesCBuff"), app.hxg.GetData(solar_system.props) };
+    // planets_far_mask_inputs[2] = { app.hxg.GetUniform(planets.rfar.pipeline, "PlanetSurfaces_tex"), app.hxg.GetData(planets.surfaceTex) };
 
 
-	solar_system_rings_mask_inputs[0] = { app.hxg.GetUniform(solar_system.rings.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	solar_system_rings_mask_inputs[1] = { app.hxg.GetUniform(solar_system.rings.pipeline, "SolarSystemPropertiesCBuff"), app.hxg.GetData(solar_system.props) };
-	solar_system_rings_mask_inputs[2] = { app.hxg.GetUniform(solar_system.rings.pipeline, "SolarSystemOrbitsCBuff"), app.hxg.GetData(solar_system.orbits) };
-	solar_system_rings_mask_inputs[3] = { app.hxg.GetUniform(solar_system.rings.pipeline, "SolarSystemOrbitsUpdateCBuff"), app.hxg.GetData(solar_system.orbit_updates) };
+    planets_texture_gen_inputs[0] = { app.hxg.GetUniform(planets.planet_tex_pip, "Props"), app.hxg.GetData(planets.planet_tex_indices_buffer) };
+    for (uint i=0; i<_PLANET_TEXTURE_COUNT; ++i){
+        planets_texture_gen_inputs[1 + (i*2+0)] = { app.hxg.GetUniform(planets.planet_tex_pip, "diffuse_tex"+std::to_string(i)), app.hxg.GetData(planets.surfaceTex[i]) };
+        planets_texture_gen_inputs[1 + (i*2+1)] = { app.hxg.GetUniform(planets.planet_tex_pip, "normals_tex"+std::to_string(i)), app.hxg.GetData(planets.normalsTex[i]) };
+    }
 
 
-	planets_far_mask_inputs[0] = { app.hxg.GetUniform(planets.rfar.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	planets_far_mask_inputs[1] = { app.hxg.GetUniform(planets.rfar.pipeline, "SolarSystemPropertiesCBuff"), app.hxg.GetData(solar_system.props) };
-	// planets_far_mask_inputs[2] = { app.hxg.GetUniform(planets.rfar.pipeline, "PlanetSurfaces_tex"), app.hxg.GetData(planets.surfaceTex) };
+    planets_near_mask_inputs[0] = { app.hxg.GetUniform(planets.rnear_pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    planets_near_mask_inputs[1] = { app.hxg.GetUniform(planets.rnear_pipeline, "Renderpos"), &(app.universe.planet_sys.planet_renderpos) };
 
 
-	planets_texture_gen_inputs[0] = { app.hxg.GetUniform(planets.planet_tex_pip, "Props"), app.hxg.GetData(planets.planet_tex_indices_buffer) };
-	for (uint i=0; i<_PLANET_TEXTURE_COUNT; ++i){
-		planets_texture_gen_inputs[1 + (i*2+0)] = { app.hxg.GetUniform(planets.planet_tex_pip, "diffuse_tex"+std::to_string(i)), app.hxg.GetData(planets.surfaceTex[i]) };
-		planets_texture_gen_inputs[1 + (i*2+1)] = { app.hxg.GetUniform(planets.planet_tex_pip, "normals_tex"+std::to_string(i)), app.hxg.GetData(planets.normalsTex[i]) };
-	}
-
-
-	planets_near_mask_inputs[0] = { app.hxg.GetUniform(planets.rnear.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
-	planets_near_mask_inputs[1] = { app.hxg.GetUniform(planets.rnear.pipeline, "Renderpos"), &(app.universe.planet_sys.planet_renderpos) };
-
-
-	taa_pass_inputs[0] = { app.hxg.GetUniform(taa_pass.pipeline, "previous_frame"), NULL, &app.linearSampler };
-	taa_pass_inputs[1] = { app.hxg.GetUniform(taa_pass.pipeline, "galaxy_tex"), app.hxg.GetData(galaxies.rnear.rendertex), &app.linearSampler };
-	taa_pass_inputs[2] = { app.hxg.GetUniform(taa_pass.pipeline, "nebula_tex"), app.hxg.GetData(nebulae.rnear.rendertex), &app.linearSampler };
-	taa_pass_inputs[3] = { app.hxg.GetUniform(taa_pass.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
+    taa_pass_inputs[0] = { app.hxg.GetUniform(taa_pass.pipeline, "previous_frame"), NULL, &app.linearSampler };
+    taa_pass_inputs[1] = { app.hxg.GetUniform(taa_pass.pipeline, "raymarch_tex"), app.hxg.GetData(GetRaymarchPassTex()), &app.linearSampler };
+    taa_pass_inputs[2] = { app.hxg.GetUniform(taa_pass.pipeline, "GlobalCamConstants"), app.hxg.GetData(constants_buff) };
 
 }
 
@@ -90,88 +82,86 @@ void UniverseRenderer::SetupShaderInputs(Application& app){
 
 
 
-void CreateDefaultRendererBundle(
-	Application& app, DefaultRendererBundle& bundle,
-	size_t scale, InputFormat format,
-	const HXGraphicsPipelineConfig& g_pipconfig
+void UniverseRenderer::CreateDefaultRendererBundle(
+    Application& app, DefaultRendererBundle& bundle,
+    uint8_t scale, InputFormat format
 ){
-	HXTextureConfig texconfig{};
-	texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
-	texconfig.Width = app.current_width/scale;
-	texconfig.Height = app.current_height/scale;
-	texconfig.Depth = 1;
-	texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
-	texconfig.GenerateMips = false;
-	texconfig.Format = format;
-	bundle.rendertex = app.hxg.CreateTexture(texconfig, NULL);
+    bundle.scale = scale;
 
+    bundle.cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
 
-	HXRenderPassConfig rpconfig{};
-	rpconfig.Flags = HX_GRAPHICS_RENDERPASS_COLOUR;
-	rpconfig.ClearColor = vec4(0);
-	rpconfig.ClearFlags = rpconfig.Flags;
-	rpconfig.Textures[0] = app.hxg.GetData(bundle.rendertex);
-	rpconfig.TextureCount = 1;
-	bundle.renderpass = app.hxg.CreateRenderPass(rpconfig);
+    HXTextureConfig texconfig{};
+    texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
+    texconfig.Width = app.current_width/scale;
+    texconfig.Height = app.current_height/scale;
+    texconfig.Depth = 1;
+    texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
+    texconfig.GenerateMips = false;
+    texconfig.Format = format;
+    bundle.rendertex = app.hxg.CreateTexture(texconfig, NULL);
 
-
-	bundle.pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
-
+    HXRenderPassConfig rpconfig{};
+    rpconfig.Flags = HX_GRAPHICS_RENDERPASS_COLOUR;
+    rpconfig.ClearColor = vec4(0);
+    rpconfig.ClearFlags = rpconfig.Flags;
+    rpconfig.Textures[0] = app.hxg.GetData(bundle.rendertex);
+    rpconfig.TextureCount = 1;
+    bundle.renderpass = app.hxg.CreateRenderPass(rpconfig);
 }
 
 
-void CreateDepthColorRendererBundle(
-	Application& app, DepthColorRendererBundle& bundle,
-	size_t scale, InputFormat format,
-	const HXGraphicsPipelineConfig& g_pipconfig
+void UniverseRenderer::CreateDepthColorRendererBundle(
+    Application& app, DepthColorRendererBundle& bundle,
+    uint8_t scale, InputFormat format
 ){
-	HXTextureConfig texconfig{};
-	texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
-	texconfig.Width = app.current_width/scale;
-	texconfig.Height = app.current_height/scale;
-	texconfig.Depth = 1;
-	texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
-	texconfig.GenerateMips = false;
+    bundle.scale = scale;
 
-	texconfig.Format = format;
-	bundle.rendertex = app.hxg.CreateTexture(texconfig, NULL);
+    bundle.cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
 
-	texconfig.Format = HX_D32_FLOAT;
-	bundle.depthtex = app.hxg.CreateTexture(texconfig, NULL);
+    HXTextureConfig texconfig{};
+    texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
+    texconfig.Width = app.current_width/scale;
+    texconfig.Height = app.current_height/scale;
+    texconfig.Depth = 1;
+    texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
+    texconfig.GenerateMips = false;
 
+    texconfig.Format = format;
+    bundle.rendertex = app.hxg.CreateTexture(texconfig, NULL);
 
-	HXRenderPassConfig rpconfig{};
-	rpconfig.Flags = HX_GRAPHICS_RENDERPASS_COLOUR | HX_GRAPHICS_RENDERPASS_DEPTH;
-	rpconfig.ClearColor = vec4(0);
-	rpconfig.ClearDepth = 0.0f;
-	rpconfig.ClearFlags = rpconfig.Flags;
-	rpconfig.Textures[0] = app.hxg.GetData(bundle.rendertex);
-	rpconfig.DepthStencil = app.hxg.GetData(bundle.depthtex);
-	rpconfig.TextureCount = 1;
-	bundle.renderpass = app.hxg.CreateRenderPass(rpconfig);
+    texconfig.Format = HX_D32_FLOAT;
+    bundle.depthtex = app.hxg.CreateTexture(texconfig, NULL);
 
-
-	bundle.pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
-
+    HXRenderPassConfig rpconfig{};
+    rpconfig.Flags = HX_GRAPHICS_RENDERPASS_COLOUR | HX_GRAPHICS_RENDERPASS_DEPTH;
+    rpconfig.ClearColor = vec4(0);
+    rpconfig.ClearDepth = 0.0f;
+    rpconfig.ClearFlags = rpconfig.Flags;
+    rpconfig.Textures[0] = app.hxg.GetData(bundle.rendertex);
+    rpconfig.DepthStencil = app.hxg.GetData(bundle.depthtex);
+    rpconfig.TextureCount = 1;
+    bundle.renderpass = app.hxg.CreateRenderPass(rpconfig);
 }
 
 
-void CreateDefaultComputeBundle(
-	Application& app, DefaultComputeBundle& bundle,
-	size_t scale, InputFormat format,
-	const HXComputePipelineConfig& c_pipconfig
+void UniverseRenderer::CreateDefaultComputeBundle(
+    Application& app, DefaultComputeBundle& bundle,
+    uint8_t scale, InputFormat format,
+    const HXComputePipelineConfig& c_pipconfig
 ){
-	HXTextureConfig texconfig{};
-	texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
-	texconfig.Width = app.current_width/scale;
-	texconfig.Height = app.current_height/scale;
-	texconfig.Depth = 1;
-	texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
-	texconfig.GenerateMips = false;
-	texconfig.Format = format;
-	bundle.rendertex = app.hxg.CreateTexture(texconfig, NULL);
+    bundle.cmdbuff = app.hxg.CreateCommandBuffer(c_cmdalloc, HX_GRAPHICS_CMDBUFFER_COMPUTE, HX_GRAPHICS_CMDBUFFER_ONCE);
 
-	bundle.pipeline = app.hxg.CreateComputePipeline(c_pipconfig);
+    HXTextureConfig texconfig{};
+    texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
+    texconfig.Width = app.current_width/scale;
+    texconfig.Height = app.current_height/scale;
+    texconfig.Depth = 1;
+    texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
+    texconfig.GenerateMips = false;
+    texconfig.Format = format;
+    bundle.rendertex = app.hxg.CreateTexture(texconfig, NULL);
+
+    bundle.pipeline = app.hxg.CreateComputePipeline(c_pipconfig);
 
 }
 
@@ -180,7 +170,6 @@ void CreateDefaultComputeBundle(
 
 
 #include "galaxy/GalaxyRenderer.cpp"
-#include "nebula/NebulaRenderer.cpp"
 #include "stars/StarsRenderer.cpp"
 #include "stars/SolarSystemRenderer.cpp"
 #include "planets/PlanetRenderer.cpp"
@@ -192,67 +181,71 @@ void CreateDefaultComputeBundle(
 
 
 void UniverseRenderer::InitTAAPass(Application& app){
-	HXTextureConfig texconfig{};
-	texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
-	texconfig.Width = app.current_width/taa_pass.scale;
-	texconfig.Height = app.current_height/taa_pass.scale;
-	texconfig.Depth = 1;
-	texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
-	texconfig.Format = HX_R16_G16_B16_A16_FLOAT;
+    HXTextureConfig texconfig{};
+    texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
+    texconfig.Width = app.current_width/taa_pass.scale;
+    texconfig.Height = app.current_height/taa_pass.scale;
+    texconfig.Depth = 1;
+    texconfig.Usage = HX_GRAPHICS_USAGE_DYNAMIC;
+    texconfig.Format = HX_R16_G16_B16_A16_FLOAT;
 
-	for (size_t i=0; i<TAAFilterPass::FrameCount; ++i){
-		taa_pass.rendertex.objects[i] = app.hxg.CreateTexture(texconfig, NULL);
-	}
-
-
-	HXRenderPassConfig rpconfig{};
-	rpconfig.ClearFlags = 0; /// dont waste time clearing
-	rpconfig.Flags = HX_GRAPHICS_RENDERPASS_COLOUR;
-	rpconfig.TextureCount = 1;
-
-	for (size_t i=0; i<TAAFilterPass::FrameCount; ++i){
-		rpconfig.Textures[0] = app.hxg.GetData(taa_pass.rendertex.objects[i]);
-		taa_pass.renderpass.objects[i] = app.hxg.CreateRenderPass(rpconfig);
-	}
+    for (size_t i=0; i<TAAFilterPass::FrameCount; ++i){
+        taa_pass.rendertex.objects[i] = app.hxg.CreateTexture(texconfig, NULL);
+    }
 
 
-	auto frag_blob = StaticUtils::LoadShaderBlob("universe_taa_pass_fragment");
-	HXGraphicsPipelineConfig g_pipconfig{};
-	ShaderC::LoadFullscreenVertexShaderBinary(g_pipconfig.VertexShader, g_pipconfig.Metadata);
-	ShaderC::LoadShaderBinary(frag_blob, HX_SHADERC_TYPE_FRAGMENT, g_pipconfig.FragmentShader, g_pipconfig.Metadata);
-	taa_pass.pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
-	delete frag_blob;
+    HXRenderPassConfig rpconfig{};
+    rpconfig.ClearFlags = 0; /// dont waste time clearing
+    rpconfig.Flags = HX_GRAPHICS_RENDERPASS_COLOUR;
+    rpconfig.TextureCount = 1;
+
+    for (size_t i=0; i<TAAFilterPass::FrameCount; ++i){
+        rpconfig.Textures[0] = app.hxg.GetData(taa_pass.rendertex.objects[i]);
+        taa_pass.renderpass.objects[i] = app.hxg.CreateRenderPass(rpconfig);
+    }
+
+
+    auto frag_blob = StaticUtils::LoadShaderBlob("universe_taa_pass_fragment");
+    HXGraphicsPipelineConfig g_pipconfig{};
+    ShaderC::LoadFullscreenVertexShaderBinary(g_pipconfig.VertexShader, g_pipconfig.Metadata);
+    ShaderC::LoadShaderBinary(frag_blob, HX_SHADERC_TYPE_FRAGMENT, g_pipconfig.FragmentShader, g_pipconfig.Metadata);
+    taa_pass.pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
+    delete frag_blob;
 }
 
 
 void UniverseRenderer::DrawTAAPass(Application& app){
-	taa_pass_inputs[0].Data = app.hxg.GetData(taa_pass.rendertex.previous());
+    taa_pass_inputs[0].Data = app.hxg.GetData(taa_pass.rendertex.previous());
 
-	HXSetGraphicsPipelineCmd setpip{};
-	setpip.pipeline = app.hxg.GetData(taa_pass.pipeline);
+    HXWaitForFenceCmd wait{};
+    wait.fence = app.hxg.GetData(taa_pass.fence);
 
-	HXSetRenderpassCmd setrp{};
-	setrp.renderpass = app.hxg.GetData(taa_pass.renderpass.current());
-	setrp.viewport = uvec4(0,0, app.current_width/taa_pass.scale, app.current_height/taa_pass.scale);
+    HXSetGraphicsPipelineCmd setpip{};
+    setpip.pipeline = app.hxg.GetData(taa_pass.pipeline);
 
-	HXUpdateShaderUniformsCmd upd{};
-	upd.Inputs = taa_pass_inputs;
-	upd.Length = HX_LENGTH_C_ARRAY(taa_pass_inputs);
+    HXSetRenderpassCmd setrp{};
+    setrp.renderpass = app.hxg.GetData(taa_pass.renderpass.current());
+    setrp.viewport = uvec4(0,0, app.current_width/taa_pass.scale, app.current_height/taa_pass.scale);
 
-	HXWaitForFenceCmd wait{};
-	wait.fence = app.hxg.GetData(galaxies.rnear.fence);
+    HXUpdateShaderUniformsCmd upd{};
+    upd.Inputs = taa_pass_inputs;
+    upd.Length = HX_LENGTH_C_ARRAY(taa_pass_inputs);
 
-	HXFullscreenDraw draw{};
-	app.hxg.InsertCommands(graphics_cmdbuff, setpip, setrp, upd, wait, draw);
-	app.hxg.ExecuteCommands(graphics_cmdbuff);
+    HXFullscreenDraw draw{};
 
-	taa_pass.rendertex.advance();
-	taa_pass.renderpass.advance();
+    HXInsertFenceCmd fnc{};
+	fnc.fence = app.hxg.GetData(taa_pass.fence);
+
+    app.hxg.InsertCommands(graphics_cmdbuff, wait, setpip, setrp, upd, draw, fnc);
+    app.hxg.ExecuteCommands(graphics_cmdbuff);
+
+    taa_pass.rendertex.advance();
+    taa_pass.renderpass.advance();
 }
 
 
 HXTexture& UniverseRenderer::GetTAATex(Application& app){
-	return taa_pass.rendertex.previous();
+    return taa_pass.rendertex.previous();
 }
 
 
@@ -268,59 +261,59 @@ HXTexture& UniverseRenderer::GetTAATex(Application& app){
 
 
 void UniverseRenderer::Init(Application& app){
-	/// init global constants buffer
-	constants_buff = app.hxg.CreateStorageBuffer(
-		HXSBufferConfig{ sizeof(CameraConstants), HX_GRAPHICS_USAGE_DYNAMIC }, NULL,
-		HX_GRAPHICS_UNIFORMBUFFER
-	);
+    /// init global constants buffer
+    constants_buff = app.hxg.CreateStorageBuffer(
+        HXSBufferConfig{ sizeof(CameraConstants), HX_GRAPHICS_USAGE_DYNAMIC }, NULL,
+        HX_GRAPHICS_UNIFORMBUFFER
+    );
 
 
-	/// init current seeds buffer
-	cur_seeds_buff = app.hxg.CreateStorageBuffer(
-		HXSBufferConfig{ sizeof(CurrentSeedsConstants), HX_GRAPHICS_USAGE_DYNAMIC }, NULL,
-		HX_GRAPHICS_UNIFORMBUFFER
-	);
-
-
-
-	/// init global command buffers
-	g_cmdalloc = app.hxg.CreateCommandAllocator(HX_GRAPHICS_CMDBUFFER_GRAPHICS);
-	c_cmdalloc = app.hxg.CreateCommandAllocator(HX_GRAPHICS_CMDBUFFER_COMPUTE);
-	graphics_cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
-	compute_cmdbuff = app.hxg.CreateCommandBuffer(c_cmdalloc, HX_GRAPHICS_CMDBUFFER_COMPUTE, HX_GRAPHICS_CMDBUFFER_ONCE);
+    /// init current seeds buffer
+    cur_seeds_buff = app.hxg.CreateStorageBuffer(
+        HXSBufferConfig{ sizeof(CurrentSeedsConstants), HX_GRAPHICS_USAGE_DYNAMIC }, NULL,
+        HX_GRAPHICS_UNIFORMBUFFER
+    );
 
 
 
-	/// setup scales
-	galaxies.scale = 2;
-	galaxies.near_scale = 2;
-	nebulae.scale = 1;
-	stars.scale = 1;
-	solar_system.scale = 1;
-	planets.scale = 1;
-	taa_pass.scale = 1;
+    /// init global command buffers
+    g_cmdalloc = app.hxg.CreateCommandAllocator(HX_GRAPHICS_CMDBUFFER_GRAPHICS);
+    c_cmdalloc = app.hxg.CreateCommandAllocator(HX_GRAPHICS_CMDBUFFER_COMPUTE);
+    graphics_cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
+    compute_cmdbuff = app.hxg.CreateCommandBuffer(c_cmdalloc, HX_GRAPHICS_CMDBUFFER_COMPUTE, HX_GRAPHICS_CMDBUFFER_ONCE);
 
 
 
-	/// init resources
-	InitResources(app);
+    /// setup scales
+    galaxies.scale = 2;
+    galaxies.near_scale = 2;
+    nebulae.scale = 1;
+    stars.scale = 1;
+    solar_system.scale = 1;
+    planets.scale = 1;
+    taa_pass.scale = 1;
 
 
 
-	/// init galaxy mask
-	InitGalaxies(app);
-	// InitNebulae(app);
-	InitStars(app);
-	InitSolarSystem(app);
-	InitPlanets(app);
+    /// init resources
+    InitGlobalResources(app);
 
 
-	/// init TAA
-	InitTAAPass(app);
+
+    /// init galaxy mask
+    InitGalaxies(app);
+    // InitNebulae(app);
+    InitStars(app);
+    InitSolarSystem(app);
+    InitPlanets(app);
 
 
-	/// setup inputs after initialization
-	SetupShaderInputs(app);
+    /// init TAA
+    InitTAAPass(app);
+
+
+    /// setup inputs after initialization
+    SetupShaderInputs(app);
 }
 
 
@@ -330,7 +323,7 @@ void UniverseRenderer::Init(Application& app){
 
 /// WARNING: Allocates memory
 void _GenerateBaseUVSphere(uint longitudes, uint latitudes, Hexo::Utils::TypedVector<vec3>& vertices, Hexo::Utils::TypedVector<vec2>& uvs, Hexo::Utils::TypedVector<uint32_t>& indices){
-	float deltaLatitude = Mathgl::pi<float>()/latitudes;
+    float deltaLatitude = Mathgl::pi<float>()/latitudes;
     float deltaLongitude = 2.0f * Mathgl::pi<float>()/longitudes;
     float latitudeAngle;
     float longitudeAngle;
@@ -341,11 +334,11 @@ void _GenerateBaseUVSphere(uint longitudes, uint latitudes, Hexo::Utils::TypedVe
         float z = sinf(latitudeAngle);     /* r * sin(phi )*/
 
         /*
-         * We add (latitudes + 1) vertices per longitude because of equator,
-         * the North pole and South pole are not counted here, as they overlap.
-         * The first and last vertices have same position and normal, but
-         * different tex coords.
-         */
+        * We add (latitudes + 1) vertices per longitude because of equator,
+        * the North pole and South pole are not counted here, as they overlap.
+        * The first and last vertices have same position and normal, but
+        * different tex coords.
+        */
         for (uint j=0; j<=longitudes; ++j){
             longitudeAngle = j * deltaLongitude;
 
@@ -353,10 +346,10 @@ void _GenerateBaseUVSphere(uint longitudes, uint latitudes, Hexo::Utils::TypedVe
             vertex.x = xy * cosf(longitudeAngle);       /* x = r * cos(phi) * cos(theta)  */
             vertex.y = xy * sinf(longitudeAngle);       /* y = r * cos(phi) * sin(theta) */
             vertex.z = z;                               /* z = r * sin(phi) */
-			vertices.push_back(vertex);
+            vertices.push_back(vertex);
 
-			vec2 uv;
-			uv.x = (float)j/longitudes;             /* s */
+            vec2 uv;
+            uv.x = (float)j/longitudes;             /* s */
             uv.y = (float)i/latitudes;              /* t */
             uvs.push_back(uv);
         }
@@ -364,119 +357,135 @@ void _GenerateBaseUVSphere(uint longitudes, uint latitudes, Hexo::Utils::TypedVe
 
 
 
-	uint k1, k2;
+    uint k1, k2;
     for(uint i=0; i<latitudes; ++i){
         k1 = i * (longitudes + 1);
         k2 = k1 + longitudes + 1;
         // 2 Triangles per latitude block excluding the first and last longitudes blocks
         for(uint j=0; j<longitudes; ++j, ++k1, ++k2){
             if (i != 0){
-				indices.push_back(k1 + 1);
+                indices.push_back(k1 + 1);
                 indices.push_back(k2);
-				indices.push_back(k1);
+                indices.push_back(k1);
             }
 
             if (i != (latitudes - 1)){
-				indices.push_back(k2 + 1);
+                indices.push_back(k2 + 1);
                 indices.push_back(k2);
-				indices.push_back(k1 + 1);
+                indices.push_back(k1 + 1);
             }
         }
     }
 }
 
 
-void UniverseRenderer::InitResources(Application& app){
-	/// init zero memory
-	resources.zero_memory = 0u;
 
-	/// init sphere geometry
-	Hexo::Utils::TypedVector<vec3> vertices;
-	Hexo::Utils::TypedVector<vec2> uvs;
-	Hexo::Utils::TypedVector<uint32_t> indices;
-	_GenerateBaseUVSphere(32, 32, vertices, uvs, indices);
+void UniverseRenderer::InitGlobalResources(Application& app){
+    /// init zero memory
+    resources.zero_memory = 0u;
 
-	resources.sphere_vert = app.hxg.CreateStorageBuffer(
-		HXSBufferConfig{vertices.size() * sizeof(vec3), HX_GRAPHICS_USAGE_STATIC},
-		vertices.data(), HX_GRAPHICS_VERTEXBUFFER
-	);
-	resources.sphere_uvs = app.hxg.CreateStorageBuffer(
-		HXSBufferConfig{uvs.size() * sizeof(vec2), HX_GRAPHICS_USAGE_STATIC},
-		uvs.data(), HX_GRAPHICS_VERTEXBUFFER
-	);
-	resources.sphere_indices = app.hxg.CreateStorageBuffer(
-		HXSBufferConfig{indices.size() * sizeof(uint32_t), HX_GRAPHICS_USAGE_STATIC},
-		indices.data(), HX_GRAPHICS_INDEXBUFFER
-	);
+    /// init sphere geometry
+    Hexo::Utils::TypedVector<vec3> vertices;
+    Hexo::Utils::TypedVector<vec2> uvs;
+    Hexo::Utils::TypedVector<uint32_t> indices;
+    _GenerateBaseUVSphere(32, 32, vertices, uvs, indices);
 
-	resources.sphere_vdesc = app.hxg.CreateVertexBufferDescriptor(
-		HXVBufferDescPair{ app.hxg.GetData(resources.sphere_vert), 0, sizeof(vec3), vertices.size(), 0, 3 },
-		HXVBufferDescPair{ app.hxg.GetData(resources.sphere_uvs), 0, sizeof(vec2), uvs.size(), 1, 2 }
-	);
-	resources.sphere_idesc = app.hxg.CreateIndexBufferDescriptor(resources.sphere_indices, 0, HX_R32_UINT, indices.size());
+    resources.sphere_vert = app.hxg.CreateStorageBuffer(
+        HXSBufferConfig{vertices.size() * sizeof(vec3), HX_GRAPHICS_USAGE_STATIC},
+        vertices.data(), HX_GRAPHICS_VERTEXBUFFER
+    );
+    resources.sphere_uvs = app.hxg.CreateStorageBuffer(
+        HXSBufferConfig{uvs.size() * sizeof(vec2), HX_GRAPHICS_USAGE_STATIC},
+        uvs.data(), HX_GRAPHICS_VERTEXBUFFER
+    );
+    resources.sphere_indices = app.hxg.CreateStorageBuffer(
+        HXSBufferConfig{indices.size() * sizeof(uint32_t), HX_GRAPHICS_USAGE_STATIC},
+        indices.data(), HX_GRAPHICS_INDEXBUFFER
+    );
+
+    resources.sphere_vdesc = app.hxg.CreateVertexBufferDescriptor(
+        HXVBufferDescPair{ app.hxg.GetData(resources.sphere_vert), 0, sizeof(vec3), vertices.size(), 0, 3 },
+        HXVBufferDescPair{ app.hxg.GetData(resources.sphere_uvs), 0, sizeof(vec2), uvs.size(), 1, 2 }
+    );
+    resources.sphere_idesc = app.hxg.CreateIndexBufferDescriptor(resources.sphere_indices, 0, HX_R32_UINT, indices.size());
+
+    CreateDefaultRendererBundle(app, resources.worlduiPass, 1, HX_R8_G8_B8_A8_BYTE);
+    CreateDefaultRendererBundle(app, resources.depthlessPass, 1, HX_R16_G16_B16_A16_FLOAT);
+    CreateDepthColorRendererBundle(app, resources.primitivesPass, 1, HX_R16_G16_B16_A16_FLOAT);
+    CreateDefaultRendererBundle(app, resources.raymarchPass, 2, HX_R16_G16_B16_A16_FLOAT);
 }
 
 
 
 
 
-void UniverseRenderer::Update(Application& app){
+void UniverseRenderer::Update(Application& app, const Camera& camera){
 
-	/// update copy of global constants
-	constants.frame_size = vec2(app.current_width, app.current_height);
-	constants.projection = app.camera.projection.matrix;
-	constants.view = app.camera.view.matrix;
-	constants.viewProjInv = inverse(constants.projection * constants.view);
-	constants.cam_pos = vec3(0);//app.camera.view.eye;
-	constants.Time = app.Time / 100.0f;
-	constants.FrameIndex = app.FrameIndex;
-	constants.level = app.camera.view.eye.level;
+    /// update copy of global constants
+    constants.frame_size = vec2(app.current_width, app.current_height);
+    constants.projection = camera.projection.matrix;
+    constants.view = camera.view.matrix;
+    constants.viewProjInv = inverse(constants.projection * constants.view);
+    constants.cam_pos = vec3(0);//camera.view.eye;
+    constants.Time = app.Time / 100.0f;
+    constants.FrameIndex = app.FrameIndex;
+    constants.level = camera.view.eye.level;
 
-	HXCopyStorageBufferCmd constcmd{};
-	constcmd.source = &constants;
-	constcmd.destination = app.hxg.GetData(constants_buff);
-	constcmd.sourceOffset = 0;
-	constcmd.destinationOffset = 0;
-	constcmd.size = sizeof(CameraConstants);
-	app.hxg.CopyStorageBuffer(constcmd, HX_GRAPHICS_COPY_CPU_GPU);
-
-
-
-	/// update copy of current seeds
-	current_seeds.galaxy_seed = app.universe.currentGalaxy.seed;
-	current_seeds.star_seed = app.universe.currentStar.seed;
-	// std::cout << current_seeds.cur_galaxy_seed << '\n';
-	// cur_star_seed = app.universe.curr
-
-	HXCopyStorageBufferCmd curseedcmd{};
-	curseedcmd.source = &current_seeds;
-	curseedcmd.destination = app.hxg.GetData(cur_seeds_buff);
-	curseedcmd.sourceOffset = 0;
-	curseedcmd.destinationOffset = 0;
-	curseedcmd.size = sizeof(CurrentSeedsConstants);
-	app.hxg.CopyStorageBuffer(curseedcmd, HX_GRAPHICS_COPY_CPU_GPU);
+    HXCopyStorageBufferCmd constcmd{};
+    constcmd.source = &constants;
+    constcmd.destination = app.hxg.GetData(constants_buff);
+    constcmd.sourceOffset = 0;
+    constcmd.destinationOffset = 0;
+    constcmd.size = sizeof(CameraConstants);
+    app.hxg.CopyStorageBuffer(constcmd, HX_GRAPHICS_COPY_CPU_GPU);
 
 
-	/// draw masks
-	if (app.camera.view.eye.level >= E_VIEW_LAYER_PLANET_ORBIT){
-		DrawPlanetsNear(app);
-	}
 
-	if (app.camera.view.eye.level >= E_VIEW_LAYER_STAR_ORBIT){
-		DrawPlanetsFar(app);
-		RegeneratePlanetTextures(app);
-		DrawSolarSystemRings(app);
-	}
+    /// update copy of current seeds
+    current_seeds.galaxy_seed = app.universe.currentGalaxy.seed;
+    current_seeds.star_seed = app.universe.currentStar.seed;
+    // std::cout << current_seeds.cur_galaxy_seed << '\n';
+    // cur_star_seed = app.universe.curr
 
-	if (app.camera.view.eye.level >= E_VIEW_LAYER_GALAXY){
-		DrawStars(app);
-		// DrawClusterMask(app);
-		DrawNearGalaxies(app);
-	}
+    HXCopyStorageBufferCmd curseedcmd{};
+    curseedcmd.source = &current_seeds;
+    curseedcmd.destination = app.hxg.GetData(cur_seeds_buff);
+    curseedcmd.sourceOffset = 0;
+    curseedcmd.destinationOffset = 0;
+    curseedcmd.size = sizeof(CurrentSeedsConstants);
+    app.hxg.CopyStorageBuffer(curseedcmd, HX_GRAPHICS_COPY_CPU_GPU);
 
-	DrawFarGalaxies(app);
-	DrawTAAPass(app);
 
+    /// draw passes
+    StartDepthlessPass(app);
+    StartPrimitivesPass(app);
+    StartRaymarchPass(app);
+    StartWorldUiPass(app);
+
+    if (camera.view.eye.level >= E_VIEW_LAYER_PLANET_ORBIT){
+        DrawPlanetsNear(app);
+    }
+
+    if (camera.view.eye.level >= E_VIEW_LAYER_STAR_ORBIT){
+        DrawPlanetsFar(app);
+        RegeneratePlanetTextures(app);
+        DrawSolarSystemRings(app);
+    }
+
+    if (camera.view.eye.level >= E_VIEW_LAYER_GALAXY){
+        DrawStars(app);
+        // DrawClusterMask(app);
+        DrawNearGalaxies(app);
+    }
+
+    DrawFarGalaxies(app);
+
+    ExecuteDepthlessPass(app);
+    ExecutePrimitivesPass(app);
+    ExecuteRaymarchPass(app);
+    ExecuteWorldUiPass(app);
+
+    DrawTAAPass(app);
 }
 
 
@@ -484,88 +493,175 @@ void UniverseRenderer::Update(Application& app){
 
 
 void UniverseRenderer::Resize(Application& app){
+    /// wait for all fences
+    app.hxg.WaitForFenceCPU(resources.worlduiPass.fence);
+    app.hxg.WaitForFenceCPU(resources.depthlessPass.fence);
+    app.hxg.WaitForFenceCPU(resources.primitivesPass.fence);
+    app.hxg.WaitForFenceCPU(resources.raymarchPass.fence);
+    app.hxg.WaitForFenceCPU(taa_pass.fence);
 
-	app.hxg.ResizeTexture(
-		planets.rnear.rendertex,
-		app.current_width/planets.scale,
-		app.current_height/planets.scale,
-		1, NULL
-	);
-	app.hxg.ResizeTexture(
-		planets.rnear.depthtex,
-		app.current_width/planets.scale,
-		app.current_height/planets.scale,
-		1, NULL
-	);
+    app.hxg.ResizeTexture(
+        resources.worlduiPass.rendertex,
+        app.current_width/resources.worlduiPass.scale,
+        app.current_height/resources.worlduiPass.scale,
+        1, NULL
+    );
 
+    app.hxg.ResizeTexture(
+        resources.depthlessPass.rendertex,
+        app.current_width/resources.depthlessPass.scale,
+        app.current_height/resources.depthlessPass.scale,
+        1, NULL
+    );
 
-	app.hxg.ResizeTexture(
-		planets.rfar.rendertex,
-		app.current_width/planets.scale,
-		app.current_height/planets.scale,
-		1, NULL
-	);
-	app.hxg.ResizeTexture(
-		planets.rfar.depthtex,
-		app.current_width/planets.scale,
-		app.current_height/planets.scale,
-		1, NULL
-	);
+    app.hxg.ResizeTexture(
+        resources.primitivesPass.rendertex,
+        app.current_width/resources.primitivesPass.scale,
+        app.current_height/resources.primitivesPass.scale,
+        1, NULL
+    );
+    app.hxg.ResizeTexture(
+        resources.primitivesPass.depthtex,
+        app.current_width/resources.primitivesPass.scale,
+        app.current_height/resources.primitivesPass.scale,
+        1, NULL
+    );
 
-
-	app.hxg.ResizeTexture(
-		solar_system.rings.rendertex,
-		app.current_width/solar_system.scale,
-		app.current_height/solar_system.scale,
-		1, NULL
-	);
-
-
-	app.hxg.ResizeTexture(
-		stars.rendertex,
-		app.current_width/stars.scale,
-		app.current_height/stars.scale,
-		1, NULL
-	);
+    app.hxg.ResizeTexture(
+        resources.raymarchPass.rendertex,
+        app.current_width/resources.raymarchPass.scale,
+        app.current_height/resources.raymarchPass.scale,
+        1, NULL
+    );
 
 
-	// app.hxg.ResizeTexture(
-	// 	nebulae.rfar.rendertex,
-	// 	app.current_width/nebulae.scale,
-	// 	app.current_height/nebulae.scale,
-	// 	1, NULL
-	// );
-	// app.hxg.ResizeTexture(
-	// 	nebulae.rnear.rendertex,
-	// 	app.current_width/nebulae.scale,
-	// 	app.current_height/nebulae.scale,
-	// 	1, NULL
-	// );
+    for (size_t i=0; i<TAAFilterPass::FrameCount; ++i){
+        app.hxg.ResizeTexture(
+            taa_pass.rendertex.objects[i],
+            app.current_width/taa_pass.scale,
+            app.current_height/taa_pass.scale,
+            1, NULL
+        );
+    }
+
+}
 
 
-	app.hxg.ResizeTexture(
-		galaxies.rfar.rendertex,
-		app.current_width/galaxies.scale,
-		app.current_height/galaxies.scale,
-		1, NULL
-	);
-	app.hxg.ResizeTexture(
-		galaxies.rnear.rendertex,
-		app.current_width/galaxies.near_scale,
-		app.current_height/galaxies.near_scale,
-		1, NULL
-	);
 
 
-	for (size_t i=0; i<TAAFilterPass::FrameCount; ++i){
-		app.hxg.ResizeTexture(
-			taa_pass.rendertex.objects[i],
-			app.current_width/taa_pass.scale,
-			app.current_height/taa_pass.scale,
-			1, NULL
-		);
-	}
+void UniverseRenderer::StartWorldUiPass(Application& app){
+    auto& pass = resources.worlduiPass;
 
+    HXWaitForFenceCmd wait{};
+	wait.fence = app.hxg.GetData(pass.fence);
+
+    HXSetRenderpassCmd setrp{};
+	setrp.renderpass = app.hxg.GetData(pass.renderpass);
+	setrp.viewport = uvec4(0,0, app.current_width/pass.scale, app.current_height/pass.scale);
+
+    app.hxg.InsertCommands(pass.cmdbuff, wait, setrp);
+}
+
+void UniverseRenderer::ExecuteWorldUiPass(Application& app){
+    auto& pass = resources.worlduiPass;
+
+    HXInsertFenceCmd fnc{};
+	fnc.fence = app.hxg.GetData(pass.fence);
+
+    app.hxg.InsertCommands(pass.cmdbuff, fnc);
+    app.hxg.ExecuteCommands(pass.cmdbuff);
+}
+
+HXTexture& UniverseRenderer::GetWorldUiPassTex(){
+    return resources.worlduiPass.rendertex;
+}
+
+
+
+
+void UniverseRenderer::StartDepthlessPass(Application& app){
+    auto& pass = resources.depthlessPass;
+
+    HXWaitForFenceCmd wait{};
+	wait.fence = app.hxg.GetData(pass.fence);
+
+    HXSetRenderpassCmd setrp{};
+	setrp.renderpass = app.hxg.GetData(pass.renderpass);
+	setrp.viewport = uvec4(0,0, app.current_width/pass.scale, app.current_height/pass.scale);
+
+    app.hxg.InsertCommands(pass.cmdbuff, wait, setrp);
+}
+
+void UniverseRenderer::ExecuteDepthlessPass(Application& app){
+    auto& pass = resources.depthlessPass;
+
+    HXInsertFenceCmd fnc{};
+	fnc.fence = app.hxg.GetData(pass.fence);
+
+    app.hxg.InsertCommands(pass.cmdbuff, fnc);
+    app.hxg.ExecuteCommands(pass.cmdbuff);
+}
+
+HXTexture& UniverseRenderer::GetDepthlessPassTex(){
+    return resources.depthlessPass.rendertex;
+}
+
+
+
+void UniverseRenderer::StartPrimitivesPass(Application& app){
+    auto& pass = resources.primitivesPass;
+
+    HXWaitForFenceCmd wait{};
+	wait.fence = app.hxg.GetData(pass.fence);
+
+    HXSetRenderpassCmd setrp{};
+	setrp.renderpass = app.hxg.GetData(pass.renderpass);
+	setrp.viewport = uvec4(0,0, app.current_width/pass.scale, app.current_height/pass.scale);
+
+    app.hxg.InsertCommands(pass.cmdbuff, wait, setrp);
+}
+
+void UniverseRenderer::ExecutePrimitivesPass(Application& app){
+    auto& pass = resources.primitivesPass;
+
+    HXInsertFenceCmd fnc{};
+	fnc.fence = app.hxg.GetData(pass.fence);
+
+    app.hxg.InsertCommands(pass.cmdbuff, fnc);
+    app.hxg.ExecuteCommands(pass.cmdbuff);
+}
+
+HXTexture& UniverseRenderer::GetPrimitivesPassTex(){
+    return resources.primitivesPass.rendertex;
+}
+
+
+
+void UniverseRenderer::StartRaymarchPass(Application& app){
+    auto& pass = resources.raymarchPass;
+
+    HXWaitForFenceCmd wait{};
+	wait.fence = app.hxg.GetData(pass.fence);
+
+    HXSetRenderpassCmd setrp{};
+	setrp.renderpass = app.hxg.GetData(pass.renderpass);
+	setrp.viewport = uvec4(0,0, app.current_width/pass.scale, app.current_height/pass.scale);
+
+    app.hxg.InsertCommands(pass.cmdbuff, wait, setrp);
+}
+
+void UniverseRenderer::ExecuteRaymarchPass(Application& app){
+    auto& pass = resources.raymarchPass;
+
+    HXInsertFenceCmd fnc{};
+	fnc.fence = app.hxg.GetData(pass.fence);
+
+    app.hxg.InsertCommands(pass.cmdbuff, fnc);
+    app.hxg.ExecuteCommands(pass.cmdbuff);
+}
+
+HXTexture& UniverseRenderer::GetRaymarchPassTex(){
+    return resources.raymarchPass.rendertex;
 }
 
 

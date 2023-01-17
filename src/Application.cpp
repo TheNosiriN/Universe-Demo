@@ -2,11 +2,9 @@
 #include "utils.h"
 #include "structs.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-
-uint8_t* load_png_texture(const std::string& name, int width, int height, int channels){
+uint8_t* LoadPNGTexture(const std::string& name, int width, int height, int channels){
 	const char* cname = ("assets/textures/"+name+".png").c_str();
 	return stbi_load(cname, &width, &height, &channels, 0);
 }
@@ -15,9 +13,9 @@ uint8_t* load_png_texture(const std::string& name, int width, int height, int ch
 
 
 void Application::Init(){
-	auto whitenoise_img = load_png_texture("whitenoise_rgba_2D", 256, 256, 4);
-	auto bluenoise_img = load_png_texture("bluenoise_rgba_2D", 512, 512, 4);
-	auto pebbles_img = load_png_texture("pebbles_r_2D", 512, 512, 1);
+	auto whitenoise_img = LoadPNGTexture("whitenoise_rgba_2D", 256, 256, 4);
+	auto bluenoise_img = LoadPNGTexture("bluenoise_rgba_2D", 512, 512, 4);
+	auto pebbles_img = LoadPNGTexture("pebbles_r_2D", 512, 512, 1);
 
 
 	g_cmdalloc = hxg.CreateCommandAllocator(HX_GRAPHICS_CMDBUFFER_GRAPHICS);
@@ -69,6 +67,7 @@ void Application::Init(){
 
 	universe.Init(*this);
 	universeRenderer.Init(*this);
+	uiRenderer.Init(*this);
 	camera.Init(*this);
 }
 
@@ -116,7 +115,7 @@ void Application::Update(){
 
 	camera.Update(*this);
 	universe.Update(*this);
-	universeRenderer.Update(*this);
+	universeRenderer.Update(*this, camera);
 	hxg.PresentTexture(camera.renderer.postprocess_tex, window);
 
 }

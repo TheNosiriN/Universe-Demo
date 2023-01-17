@@ -1,7 +1,4 @@
 void UniverseRenderer::InitStars(Application& app){
-	stars.cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
-
-
 	/// init peipeline
 	HXGraphicsPipelineConfig g_pipconfig{};
 	g_pipconfig.DepthOperation = HX_GRAPHICS_DEPTH_OP_GREATER_EQUAL; /// because reverse depth
@@ -21,7 +18,7 @@ void UniverseRenderer::InitStars(Application& app){
 
 
 	/// create other resources
-	CreateDefaultRendererBundle(app, stars, stars.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
+    stars.pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
 
 
 	delete vert_blob;
@@ -31,15 +28,8 @@ void UniverseRenderer::InitStars(Application& app){
 
 
 void UniverseRenderer::DrawStars(Application& app){
-	HXWaitForFenceCmd wait{};
-	wait.fence = app.hxg.GetData(stars.fence);
-
-	HXSetGraphicsPipelineCmd setpip{};
+    HXSetGraphicsPipelineCmd setpip{};
 	setpip.pipeline = app.hxg.GetData(stars.pipeline);
-
-	HXSetRenderpassCmd setrp{};
-	setrp.renderpass = app.hxg.GetData(stars.renderpass);
-	setrp.viewport = uvec4(0,0, app.current_width/stars.scale, app.current_height/stars.scale);
 
 	HXVertexDrawCall drawcall{};
 	drawcall.Count = 6;//app.universe.stars_psys.GetCurrentSize();
@@ -51,14 +41,5 @@ void UniverseRenderer::DrawStars(Application& app){
 	comp_uniforms.Inputs = stars_mask_inputs;
 	comp_uniforms.Length = HX_LENGTH_C_ARRAY(stars_mask_inputs);
 
-	HXInsertFenceCmd fnc{};
-	fnc.fence = app.hxg.GetData(stars.fence);
-
-	app.hxg.InsertCommands(stars.cmdbuff, setpip, setrp, comp_uniforms, wait, drawcall, fnc);
-	app.hxg.ExecuteCommands(stars.cmdbuff);
-}
-
-
-HXTexture& UniverseRenderer::GetStarsTex(Application& app){
-	return stars.rendertex;
+	app.hxg.InsertCommands(resources.depthlessPass.cmdbuff, setpip, comp_uniforms, drawcall);
 }

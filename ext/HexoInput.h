@@ -3451,6 +3451,7 @@ namespace Hexo {
 			template<typename F, typename... Args>
 			void iterate(F&& func, Args&&... args) const {
 				if (!m_data)return;
+				if (!m_size)return;
 				value_type* p = m_data;
 
 				for (size_t i=0, tsize=0;; ++i){

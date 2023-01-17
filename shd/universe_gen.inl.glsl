@@ -185,7 +185,9 @@ struct ClusterParentProps {
 
 
 #define _STARS_SPACING_FACTOR 10
-#define _STARS_BLOCK_STAR_COUNT 32
+#define _STARS_BLOCK_STAR_COUNT 16
+#define _STARS_BLOCK_WIDTH 5
+#define _STARS_BLOCK_COUNT (_STARS_BLOCK_WIDTH*_STARS_BLOCK_WIDTH*_STARS_BLOCK_WIDTH)
 #define _STARS_MAX_SURFACE_TEMPERATURE 40000.0f
 
 struct StarParticle {
@@ -249,9 +251,11 @@ struct alignas(16) SolarSystemProperties {
 
 
 #define _PLANETS_MAX_TERRAIN_LEVELS 64
-#define _TERRAIN_HEIGHT_TEXTURE_WIDTH 4096
+#define _TERRAIN_HEIGHT_TEXTURE_WIDTH 2048
 #define _PLANET_TEXTURE_COUNT 4
-#define _PLANET_TEXTURE_WIDTH 2048
+#define _PLANET_TEXTURE_SCALE_FACTOR 4
+#define _PLANET_TEXTURE_WIDTH 4096
+#define _PLANET_TERRAIN_CUSTOM_STACK_MAX_SIZE 96
 
 struct alignas(16) PlanetFarProperties {
 	vec4 lightDir;
@@ -265,6 +269,8 @@ struct PlanetTextureProps {
 	uvec4 currentTexIndices;
 };
 
-struct PlanetIcoLODUniforms {
-	int level;
+struct TerrainComputeProps {
+	vec3 observer;
+	float radius;
+	/// TODO: add planet types uniforms here
 };

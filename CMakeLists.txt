@@ -22,14 +22,16 @@ include_directories(
 	${CMAKE_CURRENT_LIST_DIR}
 	${CMAKE_CURRENT_LIST_DIR}/inc
 	${CMAKE_CURRENT_LIST_DIR}/ext
+	${CMAKE_CURRENT_LIST_DIR}/ext/freetype
 )
 
 
 add_executable(app
 	src/main.cpp
 	src/Application.cpp
-	src/Camera.cpp
 	src/renderers.cpp
+	src/ui.cpp
+	src/Camera.cpp
 	src/Universe.cpp
 )
 
@@ -42,6 +44,7 @@ add_executable(app
 target_link_libraries(app
 	lib/HexoGraphics
 	lib/HexoInput
+	lib/freetyped
 )
 
 

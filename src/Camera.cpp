@@ -5,7 +5,7 @@
 
 
 
-HXShaderInput shaderInputsPostProcess[9];
+HXShaderInput shaderInputsPostProcess[6];
 
 
 void RenderCamera::Init(Application& app){
@@ -49,47 +49,32 @@ void RenderCamera::Init(Application& app){
 
 	/// make shader inputs
 	shaderInputsPostProcess[0] = {
-		app.hxg.GetUniform(postprocess, "galaxy_far_tex"),
-		app.hxg.GetData(app.universeRenderer.GetGalaxiesTex(app)),
-		&app.linearSampler
-	};
-	shaderInputsPostProcess[1] = {
-		app.hxg.GetUniform(postprocess, "nebula_far_tex"),
-		app.hxg.GetData(app.universeRenderer.GetNebulaeTex(app)),
-		&app.linearSampler
-	};
-	shaderInputsPostProcess[2] = {
-		app.hxg.GetUniform(postprocess, "stars_tex"),
-		app.hxg.GetData(app.universeRenderer.GetStarsTex(app)),
-		&app.linearSampler
-	};
-	shaderInputsPostProcess[3] = {
-		app.hxg.GetUniform(postprocess, "solar_system_rings_tex"),
-		app.hxg.GetData(app.universeRenderer.GetSolarSystemRingsTex(app)),
-		&app.linearSampler
-	};
-	shaderInputsPostProcess[4] = {
-		app.hxg.GetUniform(postprocess, "planets_far_tex"),
-		app.hxg.GetData(app.universeRenderer.GetPlanetsFarTex(app)),
-		&app.linearSampler
-	};
-	shaderInputsPostProcess[5] = {
-		app.hxg.GetUniform(postprocess, "planets_near_tex"),
-		app.hxg.GetData(app.universeRenderer.GetPlanetsNearTex(app)),
-		&app.linearSampler
-	};
-	shaderInputsPostProcess[6] = {
 		app.hxg.GetUniform(postprocess, "taa_tex"),
 		NULL,
 		&app.linearSampler
 	};
-	shaderInputsPostProcess[7] = {
+	shaderInputsPostProcess[1] = {
 		app.hxg.GetUniform(postprocess, "GlobalCamConstants"),
 		app.hxg.GetData(app.universeRenderer.constants_buff)
 	};
-	shaderInputsPostProcess[8] = {
+	shaderInputsPostProcess[2] = {
 		app.hxg.GetUniform(postprocess, "CameraSettingsCBuff"),
 		&settings
+	};
+    shaderInputsPostProcess[3] = {
+		app.hxg.GetUniform(postprocess, "worldui_tex"),
+		app.hxg.GetData(app.universeRenderer.GetWorldUiPassTex()),
+		&app.linearSampler
+	};
+    shaderInputsPostProcess[4] = {
+		app.hxg.GetUniform(postprocess, "depthless_tex"),
+		app.hxg.GetData(app.universeRenderer.GetDepthlessPassTex()),
+		&app.linearSampler
+	};
+    shaderInputsPostProcess[5] = {
+		app.hxg.GetUniform(postprocess, "primitives_tex"),
+		app.hxg.GetData(app.universeRenderer.GetPrimitivesPassTex()),
+		&app.linearSampler
 	};
 
 }
@@ -103,7 +88,7 @@ void RenderCamera::Update(Application& app){
 	settings.exposure = clamp(settings.exposure, 0.0f,1.0f);
 
 
-	shaderInputsPostProcess[6].Data = app.hxg.GetData(app.universeRenderer.GetTAATex(app));
+	shaderInputsPostProcess[0].Data = app.hxg.GetData(app.universeRenderer.GetTAATex(app));
 
 	HXSetGraphicsPipelineCmd setpip{};
 	setpip.pipeline = app.hxg.GetData(postprocess);
@@ -164,10 +149,10 @@ void PerspectiveProjection::Init(Application& app){
 void PerspectiveProjection::Update(Application& app){
 	if (app.hxi.GetKey(app.keyboard, HX_INPUT_VK_SHIFT, HX_INPUT_KEYSTATE_DOWN)){
 		rfov = 60.0f;
-		fov = mix(fov, rfov, 0.025);
+		fov = mix(fov, rfov, float(1.0-pow(0.9975, app.deltaTime)));
 	}else{
 		rfov = 45.0f;
-		fov = mix(fov, rfov, 0.5);
+		fov = mix(fov, rfov, float(1.0-pow(0.9, app.deltaTime)));
 	}
 
 	matrix = infinitePerspectiveFovReverseZLH_ZO(radians(fov), (float)app.current_width, (float)app.current_height, 10e-9f);
@@ -198,12 +183,10 @@ vec3 _ConstructDirFromPolarCoord(const vec2& polar_coord){
 void FlyCamera::Init(Application& app){
 	type = _FLY_CAM_TYPE;
 
-	rpolar_coord = vec3(0,0.5,0);
-	polar_coord = rpolar_coord;
+	// rpolar_coord = vec3(0,0.5,0);
+	// polar_coord = rpolar_coord;
 
 	vec3 target = _ConstructDirFromPolarCoord(polar_coord);
-	dir = normalize(-target);
-	last_dir = dir;
 	last_coord = uni_vec3(0);
 
 
@@ -222,20 +205,13 @@ void FlyCamera::UpdateFlyCam(Application& app){
 	int down = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_S, HX_INPUT_KEYSTATE_DOWN);
 	int left = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_A, HX_INPUT_KEYSTATE_DOWN);
 	int right = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_D, HX_INPUT_KEYSTATE_DOWN);
-	int rollleft = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_Q, HX_INPUT_KEYSTATE_DOWN);
-	int rollright = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_E, HX_INPUT_KEYSTATE_DOWN);
 	int space = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_SPACE, HX_INPUT_KEYSTATE_DOWN);
-	// int left = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_W, HX_INPUT_KEYSTATE_DOWN);
-	// int right = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_W, HX_INPUT_KEYSTATE_DOWN);
-
-	// int acc = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_X, HX_INPUT_KEYSTATE_DOWN);
-	// int dec = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_C, HX_INPUT_KEYSTATE_DOWN);
 
 
 	acceleration = pow(1.01088e+20, 1.0/(double(speedgear)*0.3 + 10*speedgearbox + 1.0));
 	acceleration += acceleration * 2.0 * app.hxi.GetKey(app.keyboard, HX_INPUT_VK_SHIFT, HX_INPUT_KEYSTATE_DOWN);
 
-	velocity += (up - down) * acceleration * app.deltaTime * 0.1;
+	velocity += (up-down) * acceleration * app.deltaTime * 0.1;
 	if (space){
 		velocity *= pow(0.995, app.deltaTime);
 	}
@@ -245,29 +221,18 @@ void FlyCamera::UpdateFlyCam(Application& app){
 	// }
 
 
-	quat qYaw = angleAxis(mod(rpolar_coord.x,pi<float>()*2.0f), 	vec3(0,1,0));
-	quat qPitch = angleAxis(mod(rpolar_coord.y,pi<float>()*2.0f), 	vec3(1,0,0));
-	quat qRoll = angleAxis(0.0f, vec3(0,0,1));
-
-	rorientation = normalize(qYaw * qPitch * qRoll);
-	orientation = glm::slerp(orientation, rorientation, float(1.0-pow(lerpspeed, app.deltaTime))); /// this is slerp
 	mat4 rotation = mat4_cast(orientation);
 
 
-	uni_vec3 delta = uni_vec3(-last_dir) * uni_float(velocity * double(app.deltaTime) * 0.1);
+	vec3 tdir = normalize(last_orientation * normalize(vec3(right-left,0,1)));//normalize(Mathgl::toQuat(-last_dir) * vec3(0,0,1));
+	uni_vec3 delta = uni_vec3( tdir ) * uni_float(velocity * double(app.deltaTime) * 0.1);
 	eye.translate(delta);
 	last_coord = uni_vec3(0);
-
-	// vec3 target = _ConstructDirFromPolarCoord(polar_coord);
-	// dir = normalize(-target);
-
-	dir = normalize(orientation * vec3(0,0,-1));
-	// std::cout << dir.x << " -- " << dir.y << " -- " << dir.z << '\n';
 
 	matrix = transpose(rotation);//lookAtLH(vec3(0), -dir, vec3(0,1,0));
 
 	if (app.settings.mouseLocked){
-		last_dir = dir;
+		last_orientation = orientation;
 	}
 
 }
@@ -281,14 +246,14 @@ void FlyCamera::UpdateOrbitCam(Application& app){
 	zoom_fac = mix(zoom_fac, rzoom_fac, 1.0-pow(lerpspeed, app.deltaTime));
 
 
-	vec3 target = normalize(_ConstructDirFromPolarCoord(vec2{ polar_coord.x, polar_coord.y })); //
+	// vec3 target = normalize(_ConstructDirFromPolarCoord(vec2{ polar_coord.x, polar_coord.y })); //
+	vec3 target = -normalize(orientation * vec3(0,0,-1));
 	uni_vec3 coord = focus_point - uni_vec3(target) * zoom_fac;
 	uni_vec3 delta = coord - last_coord;
 	last_coord = coord;
 
 	eye.translate(delta);
 
-	dir = -target;
 	matrix = lookAtLH(vec3(0), target, vec3(0,1,0));
 }
 
@@ -300,6 +265,10 @@ void FlyCamera::Update(Application& app){
 
 		if (type == _FLY_CAM_TYPE){
 			eye.translate(focus_point-last_coord);
+		}else
+		if (type == _ORBIT_CAM_TYPE){
+			rzoom_fac = 0.0f;
+			zoom_fac = rzoom_fac;
 		}
 
 		std::cout << "cam type: " << size_t(type) << '\n';
@@ -328,10 +297,26 @@ void FlyCamera::Update(Application& app){
 	Math::Vector2 mp;
 	if (app.settings.mouseLocked || app.hxi.GetMouseKey(app.mouse, HX_INPUT_VK_LMBUTTON, HX_INPUT_KEYSTATE_DOWN)){
 		mp = app.hxi.GetMousePosition(app.mouse, HX_INPUT_PAXIS_RELATIVE) * 0.00025f * app.deltaTime;
-		rpolar_coord += vec2{ mp.x, mp.y };
+		polar_coord += vec2{ mp.x, mp.y };
 	}
-	// rpolar_coord.y = clamp(rpolar_coord.y, 0.001f, 1.0f);
 
+
+	int roll_l = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_Q, HX_INPUT_KEYSTATE_DOWN);
+	int roll_r = app.hxi.GetKey(app.keyboard, HX_INPUT_VK_CHAR_E, HX_INPUT_KEYSTATE_DOWN);
+	roll_val += (roll_r-roll_l) * 0.00100f * app.deltaTime;
+
+
+	quat qRoll = angleAxis(
+		mod(roll_val, Mathgl::pi<float>()*2.0f), vec3(0,0,1)
+	);
+	quat qPitch = angleAxis(
+		mod(polar_coord.y, Mathgl::pi<float>()*2.0f), normalize(qRoll*vec3(1,0,0))
+	);
+	quat qYaw = angleAxis(
+		mod(polar_coord.x, Mathgl::pi<float>()*2.0f), normalize(qRoll*vec3(0,1,0))
+	);
+
+	rorientation = normalize(qYaw * qPitch * qRoll);
 
 	switch (type){
 		case _FLY_CAM_TYPE:
@@ -342,7 +327,8 @@ void FlyCamera::Update(Application& app){
 		break;
 	}
 
-	polar_coord = mix(polar_coord, rpolar_coord, 1.0-pow(lerpspeed, app.deltaTime));
+	orientation = glm::slerp(orientation, rorientation, float(1.0-pow(lerpspeed, app.deltaTime))); /// this is slerp
+	// polar_coord = mix(polar_coord, rpolar_coord, 1.0-pow(lerpspeed, app.deltaTime));
 }
 
 
@@ -359,41 +345,41 @@ void FlyCamera::Cleanup(Application& app){
 
 
 
-void OrbitCamera::Init(Application& app){
-	rpolar_coord = vec3(0.75,0.25,0);
-	polar_coord = rpolar_coord;
-	lerpspeed = 0.25;
-}
-
-void OrbitCamera::Update(Application& app){
-
-	Math::Vector2 mp;
-	if (app.settings.mouseLocked || app.hxi.GetMouseKey(app.mouse, HX_INPUT_VK_LMBUTTON, HX_INPUT_KEYSTATE_DOWN)){
-		mp = app.hxi.GetMousePosition(app.mouse, HX_INPUT_PAXIS_RELATIVE) * 0.002f;
-		rpolar_coord += vec3{ -mp.x, -mp.y, 0.0f };
-	}
-	rpolar_coord.z -= app.hxi.GetMouseWheelDelta(app.mouse).y * 0.005f;
-
-
-	rpolar_coord.y = clamp(rpolar_coord.y, 0.001f, 1.0f);
-	polar_coord = mix(polar_coord, rpolar_coord, 1.0-pow(lerpspeed, app.deltaTime));
-
-	vec3 target = normalize(_ConstructDirFromPolarCoord(polar_coord));
-	uni_vec3 coord = uni_vec3(target) * 10.0e+23;
-	uni_vec3 delta = coord - last_coord;
-	last_coord = coord;
-
-	eye.translate(delta);
-
-	dir = -target;
-
-	matrix = lookAtLH(vec3(0), dir, vec3(0,1,0));
-
-}
-
-void OrbitCamera::Cleanup(Application& app){
-
-}
+// void OrbitCamera::Init(Application& app){
+// 	rpolar_coord = vec3(0.75,0.25,0);
+// 	polar_coord = rpolar_coord;
+// 	lerpspeed = 0.25;
+// }
+//
+// void OrbitCamera::Update(Application& app){
+//
+// 	Math::Vector2 mp;
+// 	if (app.settings.mouseLocked || app.hxi.GetMouseKey(app.mouse, HX_INPUT_VK_LMBUTTON, HX_INPUT_KEYSTATE_DOWN)){
+// 		mp = app.hxi.GetMousePosition(app.mouse, HX_INPUT_PAXIS_RELATIVE) * 0.002f;
+// 		rpolar_coord += vec3{ -mp.x, -mp.y, 0.0f };
+// 	}
+// 	rpolar_coord.z -= app.hxi.GetMouseWheelDelta(app.mouse).y * 0.005f;
+//
+//
+// 	rpolar_coord.y = clamp(rpolar_coord.y, 0.001f, 1.0f);
+// 	polar_coord = mix(polar_coord, rpolar_coord, 1.0-pow(lerpspeed, app.deltaTime));
+//
+// 	vec3 target = normalize(_ConstructDirFromPolarCoord(polar_coord));
+// 	uni_vec3 coord = uni_vec3(target) * 10.0e+23;
+// 	uni_vec3 delta = coord - last_coord;
+// 	last_coord = coord;
+//
+// 	eye.translate(delta);
+//
+// 	dir = -target;
+//
+// 	matrix = lookAtLH(vec3(0), dir, vec3(0,1,0));
+//
+// }
+//
+// void OrbitCamera::Cleanup(Application& app){
+//
+// }
 
 
 

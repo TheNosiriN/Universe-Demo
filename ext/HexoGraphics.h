@@ -3451,6 +3451,7 @@ namespace Hexo {
 			template<typename F, typename... Args>
 			void iterate(F&& func, Args&&... args) const {
 				if (!m_data)return;
+				if (!m_size)return;
 				value_type* p = m_data;
 
 				for (size_t i=0, tsize=0;; ++i){
@@ -17488,6 +17489,7 @@ enum : ShaderInputType {
 	HX_GRAPHICS_SHADER_UBUFFER,
 	HX_GRAPHICS_SHADER_SSBUFFER,
 	HX_GRAPHICS_SHADER_PUSHCONSTANT,
+	HX_GRAPHICS_SHADER_ATOMICCOUNTER,
 
 };
 
@@ -17532,6 +17534,7 @@ enum : BufferType {
 	HX_GRAPHICS_INDEXBUFFER,
 	HX_GRAPHICS_UNIFORMBUFFER,
 	HX_GRAPHICS_INDIRECTBUFFER,
+	HX_GRAPHICS_ATOMICCOUNTER_BUFFER
 };
 
 

@@ -1,15 +1,26 @@
+#ifndef UNIVERSE_UTILS_H
+#define UNIVERSE_UTILS_H
+
+
+
+// #ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+
+// #endif
+
 
 #define saturate(x) clamp(x, 0.0f, 1.0f)
 
 
 namespace StaticUtils {
 
-	template<typename T, int C, typename... Args>
-	inline static T weight_sum(Args&&... n){
-		T result = 0;
-		auto a = {(result += T(n))... }; (void)a;
-		return result/C;//(sizeof...(Args));
-	}
+    template<typename T, int Total>
+    inline static T weight_sum(const std::initializer_list<T> list) noexcept {
+        T result = 0;
+        for (const T& val : list){ result += val; }
+        return result / Total;
+    }
 
 
 	template<typename T>
@@ -175,6 +186,25 @@ namespace StaticUtils {
 	    vec3 rgb = hue_to_rgb(hsv.x);
 	    return ((rgb - 1.0f) * hsv.y + 1.0f) * hsv.z;
 	}
+
+
+
+	static uni_vec3 warp_uvsphere_to_vec3(uni_vec2 uv){
+		uni_vec2 s = (uv-uni_vec2(0,0.5)) * uni_vec2(pi<double>(),pi<double>()*2.0);
+	    return uni_vec3(
+	        sin(s.x) * cos(s.y),
+	        sin(s.x) * sin(s.y),
+	        cos(s.x)
+	    );
+	}
+	static uni_vec2 warp_vec3_to_uvsphere(uni_vec3 p){
+		p = normalize(p);
+		uni_vec2 uv = uni_vec2(
+	        acos(p.z)/pi<double>(),
+	        atan(p.y,p.x)/(pi<double>()*2.0) + 0.5
+	    );
+	    return uv;
+	}
 }
 
 
@@ -206,3 +236,7 @@ public:
 		return objects[(current_index - 1) % Count];
 	}
 };
+
+
+
+#endif /* end of include guard: UNIVERSE_UTILS_H */

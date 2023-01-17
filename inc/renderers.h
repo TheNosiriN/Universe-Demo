@@ -262,6 +262,7 @@ struct PlanetProc {
 	std::thread terrain_thread;
 	std::mutex terrain_thread_lock;
 
+	HXComputePipeline terrain_gen_pip;
 	HXComputePipeline normals_gen_pip;
 	HXComputePipeline terrain_tex_pip;
 	HXCommandBuffer cmdbuff;
@@ -271,7 +272,10 @@ struct PlanetProc {
 	Utils::TypedVector<vec4> terrain_vertices;
 	HXStorageBuffer terrain_vertbuffer;
 	HXStorageBuffer terrain_normalsbuffer;
-	HXStorageBuffer readback_ubuffer;
+	HXStorageBuffer atomicCounterBuffer;
+	HXStorageBuffer terrain_props_ubuff;
+
+	TerrainComputeProps terrain_compute_props;
 
 	vec3 levels_renderpos[_PLANETS_MAX_TERRAIN_LEVELS];
 
@@ -279,6 +283,9 @@ struct PlanetProc {
 	void Update(Application&, const uni_vec3&);
 	void Cleanup(Application&);
 	void Reset(Application&, const Planet&, const uni_vec3&, uint);
+
+	void IcosahedronTerrainComputePipeline(Application&);
+	void GenerateTerrainHeightsAndNormals(Application&, size_t);
 
 	inline size_t GetCurrentVertexCount(){ return CurrentVertexCount; }
 };
@@ -338,21 +345,24 @@ struct Universe {
 struct DefaultRendererBundle {
 	HXTexture rendertex;
 	HXRenderPass renderpass;
-	HXGraphicsPipeline pipeline;
-	HXGPUFence fence;
+    HXCommandBuffer cmdbuff;
+    HXGPUFence fence;
+    uint8_t scale = 1;
 };
 
 struct DepthColorRendererBundle {
 	HXTexture rendertex;
 	HXTexture depthtex;
 	HXRenderPass renderpass;
-	HXGraphicsPipeline pipeline;
-	HXGPUFence fence;
+    HXCommandBuffer cmdbuff;
+    HXGPUFence fence;
+    uint8_t scale = 1;
 };
 
 struct DefaultComputeBundle {
 	HXTexture rendertex;
 	HXComputePipeline pipeline;
+    HXCommandBuffer cmdbuff;
 	HXGPUFence fence;
 };
 
@@ -367,6 +377,11 @@ struct GlobalRendererResources {
 	HXStorageBuffer sphere_indices;
 	HXVertexBufferDescriptor sphere_vdesc;
 	HXIndexBufferDescriptor sphere_idesc;
+
+    DefaultRendererBundle worlduiPass;
+    DefaultRendererBundle depthlessPass;
+    DepthColorRendererBundle primitivesPass;
+    DefaultRendererBundle raymarchPass;
 };
 
 
@@ -374,8 +389,8 @@ struct GlobalRendererResources {
 
 struct PlanetRenderer {
 	uint8_t scale = 1;
-	DepthColorRendererBundle rfar;
-	DepthColorRendererBundle rnear;
+	HXGraphicsPipeline rfar_pipeline;
+	HXGraphicsPipeline rnear_pipeline;
 
 	HXVertexBufferDescriptor terrain_vdesc;
 
@@ -389,7 +404,6 @@ struct PlanetRenderer {
 	HXTexture normalsTex[_PLANET_TEXTURE_COUNT];
 
 	HXStorageBuffer props;
-	HXCommandBuffer cmdbuff;
 };
 
 
@@ -397,21 +411,19 @@ struct PlanetRenderer {
 
 struct SolarSystemRenderer {
 	uint8_t scale = 1;
-	DefaultRendererBundle rings;
-	DefaultRendererBundle planets;
+	HXGraphicsPipeline rings_pipeline;
 
 	HXStorageBuffer props;
 	HXStorageBuffer orbits;
 	HXStorageBuffer orbit_updates;
-	HXCommandBuffer cmdbuff;
 };
 
 
 
 
-struct StarsRenderer : DefaultRendererBundle {
+struct StarsRenderer {
 	uint8_t scale = 3;
-	HXCommandBuffer cmdbuff;
+    HXGraphicsPipeline pipeline;
 };
 
 
@@ -434,12 +446,10 @@ struct GalaxyRenderer {
 	uint8_t scale = 1;
 	uint8_t near_scale = 1;
 
-	DefaultRendererBundle rfar;
-	DefaultComputeBundle rnear;
+	HXGraphicsPipeline rfar_pipeline;
+	HXComputePipeline rnear_pipeline;
 
 	HXStorageBuffer current_props;
-	HXCommandBuffer cmdbuff;
-	HXCommandBuffer cmdbuff_compute;
 };
 
 
@@ -452,14 +462,7 @@ struct TAAFilterPass {
 	SwapHelper<HXTexture, FrameCount> rendertex;
 	SwapHelper<HXRenderPass, FrameCount> renderpass;
 	HXGraphicsPipeline pipeline;
-};
-
-
-
-
-struct FontRendererSDF {
-	HXTexture atlasTex;
-	HXStorageBuffer buffer;
+    HXGPUFence fence;
 };
 
 
@@ -482,34 +485,49 @@ struct UniverseRenderer {
 
 	TAAFilterPass taa_pass;
 
-
 	HXCommandAllocator g_cmdalloc;
 	HXCommandAllocator c_cmdalloc;
 	HXCommandBuffer graphics_cmdbuff;
 	HXCommandBuffer compute_cmdbuff;
 
 
+
 	void SetupShaderInputs(Application&);
+
+
+    void StartWorldUiPass(Application&);
+    void ExecuteWorldUiPass(Application&);
+    HXTexture& GetWorldUiPassTex();
+
+    void StartDepthlessPass(Application&);
+    void ExecuteDepthlessPass(Application&);
+    HXTexture& GetDepthlessPassTex();
+
+    void StartPrimitivesPass(Application&);
+    void ExecutePrimitivesPass(Application&);
+    HXTexture& GetPrimitivesPassTex();
+
+    void StartRaymarchPass(Application&);
+    void ExecuteRaymarchPass(Application&);
+    HXTexture& GetRaymarchPassTex();
+
 
 
 	void InitGalaxies(Application&);
 	void DrawFarGalaxies(Application&);
 	void DrawNearGalaxies(Application&);
 	void UpdateCurrentGalaxyBuffer(Application&, CurrentGalaxyProps*);
-	HXTexture& GetGalaxiesTex(Application&);
 
 
 
 	void InitNebulae(Application&);
 	void DrawFarNebulae(Application&);
 	void DrawNearNebulae(Application&);
-	HXTexture& GetNebulaeTex(Application&);
 
 
 
 	void InitStars(Application&);
 	void DrawStars(Application&);
-	HXTexture& GetStarsTex(Application&);
 
 
 
@@ -520,7 +538,6 @@ struct UniverseRenderer {
 	void DrawSolarSystemStar(Application&);
 	void UpdateSolarSystemPropsBuffer(Application&, SolarSystemProperties*);
 	void UpdateSolarSystemOrbitsBuffer(Application&, SolarSystemOrbit*, size_t);
-	HXTexture& GetSolarSystemRingsTex(Application&);
 
 
 
@@ -540,9 +557,24 @@ struct UniverseRenderer {
 
 
 	void InitResources(Application&);
+    void InitGlobalResources(Application&);
+
 	void Init(Application&);
-	void Update(Application&);
+	void Update(Application&, const Camera&);
 	void Resize(Application&);
 	void Cleanup(Application&);
+
+
+    // utility
+    void CreateDefaultRendererBundle(
+        Application&, DefaultRendererBundle&, uint8_t, InputFormat
+    );
+    void CreateDepthColorRendererBundle(
+        Application&, DepthColorRendererBundle&, uint8_t, InputFormat
+    );
+    void CreateDefaultComputeBundle(
+        Application&, DefaultComputeBundle&, uint8_t, InputFormat,
+        const HXComputePipelineConfig&
+    );
 
 };

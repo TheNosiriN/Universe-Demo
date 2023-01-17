@@ -10,10 +10,6 @@ Utils::TypedVector<PlanetFarProperties> planets_far_temp_variables;
 
 
 void UniverseRenderer::InitPlanets(Application& app){
-	planets.cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
-
-
-
 	/// init surface texture
 	HXTextureConfig texconfig{};
 	texconfig.Type = HX_GRAPHICS_TEXTURE_2D;
@@ -22,8 +18,8 @@ void UniverseRenderer::InitPlanets(Application& app){
 	texconfig.GenerateMips = false;
 
 	for (uint i=0; i<_PLANET_TEXTURE_COUNT; ++i){
-		texconfig.Width = size_t(_PLANET_TEXTURE_WIDTH / pow(4.0, float(i)));
-		texconfig.Height = size_t(_PLANET_TEXTURE_WIDTH / pow(4.0, float(i)));
+		texconfig.Width = size_t(_PLANET_TEXTURE_WIDTH / pow(_PLANET_TEXTURE_SCALE_FACTOR, float(i)));
+		texconfig.Height = size_t(_PLANET_TEXTURE_WIDTH / pow(_PLANET_TEXTURE_SCALE_FACTOR, float(i)));
 
 		texconfig.Format = HX_R8_G8_B8_A8_BYTE;
 		planets.surfaceTex[i] = app.hxg.CreateTexture(texconfig, NULL);
@@ -64,7 +60,7 @@ void UniverseRenderer::InitPlanets(Application& app){
 		ShaderC::LoadShaderBinary(vert_blob, HX_SHADERC_TYPE_VERTEX, g_pipconfig.VertexShader, g_pipconfig.Metadata);
 		ShaderC::LoadShaderBinary(frag_blob, HX_SHADERC_TYPE_FRAGMENT, g_pipconfig.FragmentShader, g_pipconfig.Metadata);
 
-		CreateDepthColorRendererBundle(app, planets.rfar, planets.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
+		planets.rfar_pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
 
 		delete vert_blob;
 		delete frag_blob;
@@ -95,7 +91,7 @@ void UniverseRenderer::InitPlanets(Application& app){
 		ShaderC::LoadShaderBinary(vert_blob, HX_SHADERC_TYPE_VERTEX, g_pipconfig.VertexShader, g_pipconfig.Metadata);
 		ShaderC::LoadShaderBinary(frag_blob, HX_SHADERC_TYPE_FRAGMENT, g_pipconfig.FragmentShader, g_pipconfig.Metadata);
 
-		CreateDepthColorRendererBundle(app, planets.rnear, planets.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
+        planets.rnear_pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
 
 		delete vert_blob;
 		delete frag_blob;
@@ -104,9 +100,9 @@ void UniverseRenderer::InitPlanets(Application& app){
 
 
 	/// get push constants
-	planets_far_renderpos_uniform = app.hxg.GetUniform(planets.rfar.pipeline, "Properties");
-	planets_far_surfacetex_uniform = app.hxg.GetUniform(planets.rfar.pipeline, "diffuse_tex");
-	planets_far_normalstex_uniform = app.hxg.GetUniform(planets.rfar.pipeline, "normals_tex");
+	planets_far_renderpos_uniform = app.hxg.GetUniform(planets.rfar_pipeline, "Properties");
+	planets_far_surfacetex_uniform = app.hxg.GetUniform(planets.rfar_pipeline, "diffuse_tex");
+	planets_far_normalstex_uniform = app.hxg.GetUniform(planets.rfar_pipeline, "normals_tex");
 
 	// planets_texture_gen_input_uniforms[0] = app.hxg.GetUniform(planets.planet_tex_pip, "diffuse_tex[0]");
 	// planets_texture_gen_input_uniforms[1] = app.hxg.GetUniform(planets.planet_tex_pip, "normals_tex[0]");
@@ -118,22 +114,17 @@ void UniverseRenderer::InitPlanets(Application& app){
 
 
 void UniverseRenderer::DrawPlanetsFar(Application& app){
-
-	// HXWaitForFenceCmd wait{};
+    // HXWaitForFenceCmd wait{};
 	// wait.fence = app.hxg.GetData(planets.rfar.fence);
 
 	HXSetGraphicsPipelineCmd setpip{};
-	setpip.pipeline = app.hxg.GetData(planets.rfar.pipeline);
-
-	HXSetRenderpassCmd setrp{};
-	setrp.renderpass = app.hxg.GetData(planets.rfar.renderpass);
-	setrp.viewport = uvec4(0,0, app.current_width/planets.scale, app.current_height/planets.scale);
+	setpip.pipeline = app.hxg.GetData(planets.rfar_pipeline);
 
 	HXUpdateShaderUniformsCmd comp_uniforms{};
 	comp_uniforms.Inputs = planets_far_mask_inputs;
 	comp_uniforms.Length = HX_LENGTH_C_ARRAY(planets_far_mask_inputs);
 
-	app.hxg.InsertCommands(planets.cmdbuff, setpip, setrp, comp_uniforms);
+	app.hxg.InsertCommands(resources.primitivesPass.cmdbuff, setpip, comp_uniforms);
 
 
 	planets_far_temp_variables.clearFast();
@@ -208,7 +199,11 @@ void UniverseRenderer::DrawPlanetsFar(Application& app){
 		drawcall.IDesc = app.hxg.GetData(resources.sphere_idesc);
 		drawcall.Mode = HX_GRAPHICS_DRAW_TRIANGLE;
 
-		app.hxg.InsertCommands(planets.cmdbuff, renderpos_uniform, surfacetex_uniform, normalstex_uniform, drawcall);
+		app.hxg.InsertCommands(
+            resources.primitivesPass.cmdbuff,
+            renderpos_uniform, surfacetex_uniform, normalstex_uniform,
+            drawcall
+        );
 	}
 
 
@@ -216,29 +211,24 @@ void UniverseRenderer::DrawPlanetsFar(Application& app){
 	// fnc.fence = app.hxg.GetData(planets.rfar.fence);
 	// app.hxg.InsertCommands(planets.cmdbuff, fnc);
 
-	app.hxg.ExecuteCommands(planets.cmdbuff);
-}
-
-
-HXTexture& UniverseRenderer::GetPlanetsFarTex(Application& app){
-	return planets.rfar.rendertex;
+	// app.hxg.ExecuteCommands(planets.cmdbuff);
 }
 
 
 
 
 void UniverseRenderer::DrawPlanetsNear(Application& app){
-	if (!planets.closestPlanetInView){ return; }
+    if (!planets.closestPlanetInView){ return; }
 
-	// HXWaitForFenceCmd wait{};
+    // HXWaitForFenceCmd wait{};
 	// wait.fence = app.hxg.GetData(galaxies.rnear.fence);
 
 	HXSetGraphicsPipelineCmd setpip{};
-	setpip.pipeline = app.hxg.GetData(planets.rnear.pipeline);
+	setpip.pipeline = app.hxg.GetData(planets.rnear_pipeline);
 
-	HXSetRenderpassCmd setrp{};
-	setrp.renderpass = app.hxg.GetData(planets.rnear.renderpass);
-	setrp.viewport = uvec4(0,0, app.current_width/planets.scale, app.current_height/planets.scale);
+	// HXSetRenderpassCmd setrp{};
+	// setrp.renderpass = app.hxg.GetData(resources.primitivesPass.renderpass);
+	// setrp.viewport = uvec4(0,0, app.current_width/planets.scale, app.current_height/planets.scale);
 
 	HXUpdateShaderUniformsCmd comp_uniforms{};
 	comp_uniforms.Inputs = planets_near_mask_inputs;
@@ -260,20 +250,16 @@ void UniverseRenderer::DrawPlanetsNear(Application& app){
 	drawcall.VDesc = app.hxg.GetData(planets.terrain_vdesc);
 	drawcall.Mode = app.settings.wireframe ? HX_GRAPHICS_DRAW_LINE_STRIP : HX_GRAPHICS_DRAW_TRIANGLE;
 
-	app.hxg.InsertCommands(planets.cmdbuff, setpip, setrp, comp_uniforms, lightDir_uniform, waitforgen, drawcall);
+	app.hxg.InsertCommands(resources.primitivesPass.cmdbuff, setpip, comp_uniforms, lightDir_uniform, waitforgen, drawcall);
 
 
 	// HXInsertFenceCmd fnc{};
 	// fnc.fence = app.hxg.GetData(planets.rnear.fence);
 	// app.hxg.InsertCommands(planets.cmdbuff, fnc);
 
-	app.hxg.ExecuteCommands(planets.cmdbuff);
+	// app.hxg.ExecuteCommands(planets.cmdbuff);
 }
 
-
-HXTexture& UniverseRenderer::GetPlanetsNearTex(Application& app){
-	return planets.rnear.rendertex;
-}
 
 
 
@@ -371,7 +357,7 @@ void UniverseRenderer::RegeneratePlanetTextures(Application& app){
 	app.hxg.CopyStorageBuffer(constcmd, HX_GRAPHICS_COPY_CPU_GPU);
 
 
-	size_t maxwidth = size_t(_PLANET_TEXTURE_WIDTH / pow(4.0, float( planets.currentTexIndices[0] )));
+	size_t maxwidth = size_t(_PLANET_TEXTURE_WIDTH / pow(_PLANET_TEXTURE_SCALE_FACTOR, float( planets.currentTexIndices[0] )));
 
 
 	HXSetComputePipelineCmd setpip{};
@@ -386,9 +372,11 @@ void UniverseRenderer::RegeneratePlanetTextures(Application& app){
 	discmd.y = maxwidth / 32;
 	discmd.z = dispatchCount;
 	std::cout << "dis count: " << dispatchCount;
-	for (uint i=0; i<dispatchCount; ++i){ std::cout << " --" << (_PLANET_TEXTURE_WIDTH / pow(4.0, float( planets.currentTexIndices[i] ))); }
+	for (uint i=0; i<dispatchCount; ++i){
+        std::cout << " --" << (_PLANET_TEXTURE_WIDTH / pow(_PLANET_TEXTURE_SCALE_FACTOR, float( planets.currentTexIndices[i] )));
+    }
 	std::cout << '\n';
 
-	app.hxg.InsertCommands(planets.cmdbuff, setpip, comp_uniforms, discmd);
-	app.hxg.ExecuteCommands(planets.cmdbuff);
+	app.hxg.InsertCommands(compute_cmdbuff, setpip, comp_uniforms, discmd);
+	app.hxg.ExecuteCommands(compute_cmdbuff);
 }

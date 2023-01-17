@@ -21,6 +21,10 @@ layout(std430, binding = 2) buffer IndexBuffer {
 	uint index_buffer[];
 };
 
+layout(push_constant) uniform Props {
+	uint vertcount;
+};
+
 
 layout(binding = 0) uniform sampler2D heightTex;
 
@@ -66,6 +70,8 @@ vec3 makenormal(vec2 uv, float samp, uint octaves){
 
 void main(){
 	uint id = gl_GlobalInvocationID.x;
+	if (id >= vertcount)return;
+
 	uint rid = id * 3u;
 
 	vec4 pos[3];
@@ -80,7 +86,7 @@ void main(){
 		float rad = length(pos[i].xyz);
 		vec3 npos = normalize(pos[i].xyz);
 
-		float samp = planet_fbm_far(warp_uvsphere_to_vec3(warp_vec3_to_uvsphere(npos)), 8u);
+		float samp = planet_fbm_far(npos, 8u);
 		// float samp = texture(heightTex, warp_vec3_to_uvsphere(npos)).x;
 		pos[i].xyz -= samp*npos*rad*0.01;
 		norms[i] = makenormal(warp_vec3_to_uvsphere(npos), samp, 8u);

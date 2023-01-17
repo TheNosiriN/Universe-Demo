@@ -1,0 +1,4 @@
+C:/Users/TheNosiriN/Documents/CppProjects/universe/CMakeFiles/app.dir
+C:/Users/TheNosiriN/Documents/CppProjects/universe/CMakeFiles/Shaders.dir
+C:/Users/TheNosiriN/Documents/CppProjects/universe/CMakeFiles/edit_cache.dir
+C:/Users/TheNosiriN/Documents/CppProjects/universe/CMakeFiles/rebuild_cache.dir

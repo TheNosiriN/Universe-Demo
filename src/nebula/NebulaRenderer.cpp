@@ -20,7 +20,7 @@ void UniverseRenderer::InitNebulae(Application& app){
 
 	/// create other resources
 	// CreateDefaultRendererBundle(app, nebulae.rfar, nebulae.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
-	CreateDefaultRendererBundle(app, nebulae.rnear, nebulae.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
+	// CreateDefaultRendererBundle(app, nebulae.rnear, nebulae.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
 
 
 	delete vert_blob;

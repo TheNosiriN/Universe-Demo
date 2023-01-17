@@ -19,7 +19,7 @@ Application app{};
 
 
 void InitErrorCallbacks(){
-	/// testing error app
+	/// init the error app
     Graphics::SetErrorCallback([](HXRC_STATE state){
 		if (state.Code != HXRC_INFO){
 			std::cout << "Graphics Engine: " << state.ErrorString << '\n';
@@ -34,7 +34,7 @@ void InitErrorCallbacks(){
         if (state.Code == HXRC_FATAL)exit(0);
     });
 
-    /// testing the error app
+    /// test the error app
     HX_GRAPHICS_ERROR_PRINT("Error App is Working");
 	HX_INPUT_ERROR_PRINT("Error App is Working");
 }
@@ -63,7 +63,7 @@ void InitAppEssentials(){
 	winconfig.Name = "The Universe";
 	winconfig.Width = 1280;
 	winconfig.Height = 720;
-	winconfig.Fullscreen = true;
+	winconfig.Fullscreen = false;
 	winconfig.RefreshRate = 60;
 	winconfig.VSync = false;
 	winconfig.Transparency = false;

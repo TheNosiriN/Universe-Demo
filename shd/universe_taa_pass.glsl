@@ -16,21 +16,26 @@ layout(std140, binding = 0) uniform GlobalCamConstants {
 layout(location = 0) out vec4 FragColor;
 
 layout(binding = 0) uniform sampler2D previous_frame;
-layout(binding = 1) uniform sampler2D galaxy_tex;
-layout(binding = 2) uniform sampler2D nebula_tex;
+layout(binding = 3) uniform sampler2D raymarch_tex;
 
 
 
 
+#define ADDTEX(texname, posuv) tex = max(texture(texname, posuv), 0.0); color = mix(tex+color, color, color.a);
 
 vec4 makeComposite(vec2 uv){
-	vec4 color = vec4(0);
+    vec4 color = vec4(0);
+	vec4 tex = vec4(0);
+
 	// if (camera.level >= E_VIEW_LAYER_GALAXY){
 	// 	color += texture(nebula_tex, uv) * (1.0-color.a);
 	// }
 
 	// float fadeout = mix(1.0, 0.1, easeOutExpo(max(camera.level-E_VIEW_LAYER_UNIVERSE, 0.0)/E_VIEW_LAYERS_COUNT));
-	color += texture(galaxy_tex, uv) * (1.0-color.a);
+	// color += texture(galaxy_tex, uv) * (1.0-color.a);
+
+    ADDTEX(raymarch_tex, uv);
+
 	return clamp(color, 0.0, 1.0);
 }
 
@@ -65,9 +70,6 @@ void main(){
     // interpolate from the clamped old color to the new color.
     // Reject all history when the mouse moves.
     vec4 color = mix(old, center, 0.1);
-
-
-
 
 
 	FragColor = color;

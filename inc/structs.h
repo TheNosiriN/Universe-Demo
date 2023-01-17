@@ -1,4 +1,9 @@
+#ifndef UNIVERSE_STRUCTS_H
+#define UNIVERSE_STRUCTS_H
+
+
 #include "renderers.h"
+#include "ui.h"
 
 
 
@@ -145,15 +150,16 @@ struct FlyCamera {
 	uint8_t type;
 	CameraViewpoint eye;
 
-	vec3 dir;
 	mat4 matrix;
 
 	uni_vec3 last_coord;
-	vec3 last_dir;
 	uni_vec3 focus_point;
 
-	vec2 rpolar_coord;
 	vec2 polar_coord;
+	float roll_val;
+	quat last_orientation;
+	quat rorientation;
+	quat orientation;
 	double zoom_fac;
 	double rzoom_fac;
 	float lerpspeed;
@@ -174,22 +180,22 @@ struct FlyCamera {
 	}
 };
 
-struct OrbitCamera {
-	CameraViewpoint eye;
-
-	vec3 dir;
-	mat4 matrix;
-
-	float lerpspeed;
-
-	uni_vec3 last_coord;
-	vec3 rpolar_coord;
-	vec3 polar_coord;
-
-	void Init(Application&);
-	void Update(Application&);
-	void Cleanup(Application&);
-};
+// struct OrbitCamera {
+// 	CameraViewpoint eye;
+//
+// 	vec3 dir;
+// 	mat4 matrix;
+//
+// 	float lerpspeed;
+//
+// 	uni_vec3 last_coord;
+// 	vec3 rpolar_coord;
+// 	vec3 polar_coord;
+//
+// 	void Init(Application&);
+// 	void Update(Application&);
+// 	void Cleanup(Application&);
+// };
 
 struct Frustum {
 	vec4 faces[4];
@@ -282,8 +288,14 @@ struct Application {
 	Universe universe;
 	UniverseRenderer universeRenderer;
 
+	UIRenderer uiRenderer;
+
 
 	void Init();
 	void Update();
 	void Cleanup();
 };
+
+
+
+#endif /* end of include guard: UNIVERSE_STRUCTS_H */

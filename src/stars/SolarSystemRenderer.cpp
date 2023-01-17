@@ -4,9 +4,6 @@ HXShaderUniform star_renderpos_uniform;
 
 
 void UniverseRenderer::InitSolarSystem(Application& app){
-	solar_system.cmdbuff = app.hxg.CreateCommandBuffer(g_cmdalloc, HX_GRAPHICS_CMDBUFFER_GRAPHICS, HX_GRAPHICS_CMDBUFFER_ONCE);
-
-
 	/// init star properties buffer
 	solar_system.props = app.hxg.CreateStorageBuffer(
 		HXSBufferConfig{ sizeof(SolarSystemProperties), HX_GRAPHICS_USAGE_DYNAMIC }, NULL,
@@ -40,8 +37,7 @@ void UniverseRenderer::InitSolarSystem(Application& app){
 	ShaderC::LoadShaderBinary(vert_blob, HX_SHADERC_TYPE_VERTEX, g_pipconfig.VertexShader, g_pipconfig.Metadata);
 	ShaderC::LoadShaderBinary(frag_blob, HX_SHADERC_TYPE_FRAGMENT, g_pipconfig.FragmentShader, g_pipconfig.Metadata);
 
-	CreateDefaultRendererBundle(app, solar_system.rings, solar_system.scale, HX_R16_G16_B16_A16_FLOAT, g_pipconfig);
-
+	solar_system.rings_pipeline = app.hxg.CreateGraphicsPipeline(g_pipconfig);
 
 
 	/// init star pipeline
@@ -49,12 +45,12 @@ void UniverseRenderer::InitSolarSystem(Application& app){
 
 
 	/// get push constant uniforms
-	orbits_renderpos_uniform = app.hxg.GetUniform(solar_system.rings.pipeline, "RenderPos");
+	orbits_renderpos_uniform = app.hxg.GetUniform(solar_system.rings_pipeline, "RenderPos");
 
 }
 
 void UniverseRenderer::DrawPlanetOrbits(Application& app){
-	HXVertexDrawCall drawcall{};
+    HXVertexDrawCall drawcall{};
 	drawcall.Count = 128;
 	drawcall.InstanceCount = app.universe.solar_system_sys.GetPlanetCount();
 	drawcall.VDesc = NULL;
@@ -74,12 +70,12 @@ void UniverseRenderer::DrawPlanetOrbits(Application& app){
 	offset_uniform.Extra = sizeof(vec3);
 	offset_uniform.Data = &resources.zero_memory;
 
-	app.hxg.InsertCommands(solar_system.cmdbuff, renderpos_uniform, offset_uniform, drawcall);
+	app.hxg.InsertCommands(resources.worlduiPass.cmdbuff, renderpos_uniform, offset_uniform, drawcall);
 }
 
 
 void UniverseRenderer::DrawMoonOrbits(Application& app){
-	for (uint i=0; i<app.universe.solar_system_sys.planetCount; ++i){
+    for (uint i=0; i<app.universe.solar_system_sys.planetCount; ++i){
 		const Planet& planet = app.universe.solar_system_sys.GetClosestPlanet(i);
 		const vec3& renderpos = app.universe.solar_system_sys.GetClosestPlanetOrbitTempPos(i).renderpos;
 
@@ -104,38 +100,27 @@ void UniverseRenderer::DrawMoonOrbits(Application& app){
 		offset_uniform.Extra = sizeof(vec3);	/// this is the offset when dealing with push constants
 		offset_uniform.Data = &planet.moonOrbitOffset;
 
-		app.hxg.InsertCommands(solar_system.cmdbuff, renderpos_uniform, offset_uniform, drawcall);
+		app.hxg.InsertCommands(resources.worlduiPass.cmdbuff, renderpos_uniform, offset_uniform, drawcall);
 	}
 }
 
 
 void UniverseRenderer::DrawSolarSystemRings(Application& app){
-	HXSetGraphicsPipelineCmd setpip{};
-	setpip.pipeline = app.hxg.GetData(solar_system.rings.pipeline);
+    HXSetGraphicsPipelineCmd setpip{};
+	setpip.pipeline = app.hxg.GetData(solar_system.rings_pipeline);
 
-	HXSetRenderpassCmd setrp{};
-	setrp.renderpass = app.hxg.GetData(solar_system.rings.renderpass);
-	setrp.viewport = uvec4(0,0, app.current_width/solar_system.scale, app.current_height/solar_system.scale);
-
-	app.hxg.InsertCommands(solar_system.cmdbuff, setpip, setrp);
+	app.hxg.InsertCommands(resources.worlduiPass.cmdbuff, setpip);
 
 
 	if (app.universe.solar_system_sys.GetPlanetCount() && app.settings.renderStellarOrbits){
 		HXUpdateShaderUniformsCmd comp_uniforms{};
 		comp_uniforms.Inputs = solar_system_rings_mask_inputs;
 		comp_uniforms.Length = HX_LENGTH_C_ARRAY(solar_system_rings_mask_inputs);
-		app.hxg.InsertCommands(solar_system.cmdbuff, comp_uniforms);
+		app.hxg.InsertCommands(resources.worlduiPass.cmdbuff, comp_uniforms);
 
 		DrawPlanetOrbits(app);
 		DrawMoonOrbits(app);
 	}
-
-
-	// HXInsertFenceCmd fnc{};
-	// fnc.fence = &solar_system.rings.fence;
-	// app.hxg.InsertCommands(solar_system.cmdbuff, fnc);
-
-	app.hxg.ExecuteCommands(solar_system.cmdbuff);
 }
 
 
@@ -163,9 +148,4 @@ void UniverseRenderer::UpdateSolarSystemOrbitsBuffer(Application& app, SolarSyst
 	copybuffcmd.destinationOffset = 0;
 	copybuffcmd.size = sizeof(SolarSystemOrbit) * count;
 	app.hxg.CopyStorageBuffer(copybuffcmd, HX_GRAPHICS_COPY_CPU_GPU);
-}
-
-
-HXTexture& UniverseRenderer::GetSolarSystemRingsTex(Application& app){
-	return solar_system.rings.rendertex;
 }

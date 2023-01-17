@@ -251,6 +251,30 @@ src\renderers.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\app.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\app.dir\src\renderers.cpp.s
 .PHONY : src\renderers.cpp.s
 
+src\ui.obj: src\ui.cpp.obj
+.PHONY : src\ui.obj
+
+# target to build an object file
+src\ui.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\app.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\app.dir\src\ui.cpp.obj
+.PHONY : src\ui.cpp.obj
+
+src\ui.i: src\ui.cpp.i
+.PHONY : src\ui.i
+
+# target to preprocess a source file
+src\ui.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\app.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\app.dir\src\ui.cpp.i
+.PHONY : src\ui.cpp.i
+
+src\ui.s: src\ui.cpp.s
+.PHONY : src\ui.s
+
+# target to generate assembly for a file
+src\ui.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\app.dir\build.make /nologo -$(MAKEFLAGS) CMakeFiles\app.dir\src\ui.cpp.s
+.PHONY : src\ui.cpp.s
+
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -276,6 +300,9 @@ help:
 	@echo ... src/renderers.obj
 	@echo ... src/renderers.i
 	@echo ... src/renderers.s
+	@echo ... src/ui.obj
+	@echo ... src/ui.i
+	@echo ... src/ui.s
 .PHONY : help
 
 

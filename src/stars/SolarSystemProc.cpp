@@ -246,10 +246,10 @@ void _GenerateStarProperties(SolarSystemProc& proc, Star& star, uint seed){
 	star.props.orientation = frandom_quaternion<vec4>(seed);
 
 	vec2 unpack = Mathgl::unpackHalf2x16(star.seed);
-	float radius_fac = frandom(seed);
+	float radius_fac = pow(frandom(seed), mix(8.0f, 4.0f, star.temperature));
 	float closeness_fac = unpack.y;
 
-	star.props.radius = mix(0.0001f, 1.0f, pow(radius_fac, mix(8.0f, 4.0f, star.temperature))); /// 1.0 = 2150 solar radii (1.0/2150 = radius of sun)
+	star.props.radius = mix(0.0001f, 1.0f, radius_fac); /// 1.0 = 2150 solar radii (1.0/2150 = radius of sun)
 	star.radius = star.props.radius * CameraViewpoint::GetScale(E_VIEW_LAYER_STAR_ORBIT);	/// in meters
 
 	star.temperature = unpack.x;
@@ -257,18 +257,20 @@ void _GenerateStarProperties(SolarSystemProc& proc, Star& star, uint seed){
 
 	constexpr double largest_density = 1.0;		/// kg/m^3
 	constexpr double smallest_density = 5000.0;	/// kg/m^3
-	star.density = mix(smallest_density, largest_density, easeOutExpo(frandom(seed)));
+	star.density = mix(smallest_density, largest_density, pow(frandom(seed), 0.8));
 
 	star.mass = __calculate_mass_from_density(star.density, star.radius);
 
 	// proc.planetCount = uint(pow(frandom(seed), mix(1.0f,20.0f,closeness_fac)) * _SOLAR_SYSTEM_MAX_PLANETS + 0.5f);
-	proc.planetCount = uint(weight_sum<float, 3>(
-		2 * (1.0-closeness_fac),
-		1 * pow(frandom(seed), 2.0f)
-	) * _SOLAR_SYSTEM_MAX_PLANETS);
 
-	star.radius_of_influence = mix(25.0f, 200.0f, frandom(seed)*radius_fac*(1.0-closeness_fac)) * CameraViewpoint::GetScale(E_VIEW_LAYER_STAR_ORBIT);
-	std::cout << "generated influence fac of: " << radius_fac*(1.0-closeness_fac) << '\n';
+    proc.planetCount = uint(weight_sum<double, 3>({
+		2 * (1.0-closeness_fac),
+		1 * pow(frandom(seed), 2.0f),
+	}) * _SOLAR_SYSTEM_MAX_PLANETS);
+
+	float influence_fac = frandom(seed) * (1.0f-closeness_fac) * radius_fac;
+	star.radius_of_influence = mix(25.0f, 200.0f, influence_fac) * CameraViewpoint::GetScale(E_VIEW_LAYER_STAR_ORBIT);
+	std::cout << "generated influence fac of: " << influence_fac << '\n';
 	std::cout << "generated radius of: " << star.radius_of_influence/CameraViewpoint::GetScale(E_VIEW_LAYER_STAR_ORBIT) << '\n';
 }
 
@@ -324,10 +326,10 @@ void _GenerateMoonOrbits(SolarSystemProc& proc, const Star& star, const Planet& 
 		double orbit_radius = mix(roche_limit, planet.hill_sphere, easeOutExpo(frandom(seed)));
 
 		orbit.semi_major_axis = float(orbit_radius / CameraViewpoint::GetScale(E_VIEW_LAYER_PLANET_ORBIT));
-		orbit.eccentrity = min(weight_sum<float, 2>(
-			1 * orbit_radius/star.radius_of_influence,
-			1 * pow(frandom(seed), 3.0)
-		), 0.9f);
+		orbit.eccentrity = min(weight_sum<float, 2>({
+			float(orbit_radius/star.radius_of_influence),
+			pow(frandom(seed), 3.0f)
+		}), 0.9f);
 
 		vec2 angle_offset;
 		angle_offset.x = frandom(seed) * Mathgl::pi<float>() * 2.0f;
@@ -370,7 +372,7 @@ void _GeneratePlanetOrbits(SolarSystemProc& proc, const Star& star){
 	// std::cout << "star mass: " << star.mass << " -- radius: " << star.radius << " -- density: " << star.density << '\n';
 	// std::cout << "ring count: " << proc.planetCount << '\n';
 	// std::cout << "largest density: " << largest_density << '\n';
-	// std::cout << "hill sphere: " << star.radius_of_influence << '\n';
+	std::cout << "hill sphere: " << star.radius_of_influence << '\n';
 
 
 	uint curnumorbits = proc.planetCount;
@@ -412,13 +414,14 @@ void _GeneratePlanetOrbits(SolarSystemProc& proc, const Star& star){
 			200.0 * (orbit_radius/star.radius_of_influence) * CameraViewpoint::GetScale(E_VIEW_LAYER_PLANET_ORBIT),
 			__calculate_hill_sphere(star.mass, planet.mass, orbit_radius)
 		);
+		std::cout << "planet: " << i << ", hill_sphere: " << orbit_radius << '\n';
 
 		/// determine the semi-major axis relative to current scale
 		orbit.semi_major_axis = float(orbit_radius / CameraViewpoint::GetScale(E_VIEW_LAYER_STAR_ORBIT));
-		orbit.eccentrity = min(weight_sum<float, 2>(
+		orbit.eccentrity = min(weight_sum<float, 2>({
 			1 * easeInExpo(float(orbit_radius/star.radius_of_influence)),
 			1 * pow(frandom(seed), 3.0f)
-		), 0.9f);
+		}), 0.9f);
 
 		vec2 angle_offset;
 		angle_offset.x = frandom(seed) * Mathgl::pi<float>() * 2.0f;
@@ -429,11 +432,11 @@ void _GeneratePlanetOrbits(SolarSystemProc& proc, const Star& star){
 		/// generate moon count
 		uint num_orbits = (_SOLAR_SYSTEM_MAX_ORBITS-curnumorbits) / (proc.planetCount-i);
 		planet.orbitCount = uint8_t(
-			weight_sum<float, 12>(
+			weight_sum<double, 12>({
 				9 * pow(orbit_radius/star.radius_of_influence, 10.0f),
 				2 * frandom(seed),
 				1 * density_fac
-			) * num_orbits
+			}) * num_orbits
 		);
 		curnumorbits += planet.orbitCount;
 

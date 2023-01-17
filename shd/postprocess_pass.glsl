@@ -10,13 +10,10 @@
 
 layout(location = 0) out vec4 FragColor;
 
-layout(binding = 0) uniform sampler2D galaxy_far_tex;
-layout(binding = 1) uniform sampler2D nebula_far_tex;
-layout(binding = 2) uniform sampler2D stars_tex;
-layout(binding = 3) uniform sampler2D solar_system_rings_tex;
-layout(binding = 4) uniform sampler2D planets_far_tex;
-layout(binding = 5) uniform sampler2D planets_near_tex;
-layout(binding = 6) uniform sampler2D taa_tex;
+layout(binding = 0) uniform sampler2D worldui_tex;
+layout(binding = 1) uniform sampler2D depthless_tex;
+layout(binding = 2) uniform sampler2D primitives_tex;
+layout(binding = 3) uniform sampler2D taa_tex;
 
 layout(std140, binding = 0) uniform GlobalCamConstants {
 	CameraConstants camera;
@@ -36,28 +33,35 @@ vec4 makeComposite(vec2 uv){
 	vec4 color = vec4(0);
 	vec4 tex = vec4(0);
 
-	if (camera.level >= E_VIEW_LAYER_PLANET_ORBIT){
-		ADDTEX(planets_near_tex, uv);
-	}
-
-	if (camera.level >= E_VIEW_LAYER_STAR_ORBIT){
-		// color += max(texture(planets_far_tex, uv), 0.0) * (1.0-color.a);
-		// color += max(texture(solar_system_rings_tex, uv), 0.0) * (1.0-color.a);
-		ADDTEX(planets_far_tex, uv);
-		ADDTEX(solar_system_rings_tex, uv);
-	}
-
-	if (camera.level >= E_VIEW_LAYER_GALAXY){
-		// color += max(texture(stars_tex, uv), 0.0) * (1.0-color.a);
-		// color += max(texture(taa_tex, uv), 0.0) * (1.0-color.a);
-		ADDTEX(stars_tex, uv);
-		ADDTEX(taa_tex, uv);
-	}
-
-	// float fadeout = mix(1.0, 0.1, easeOutExpo(max(camera.level-E_VIEW_LAYER_UNIVERSE, 0.0)/E_VIEW_LAYERS_COUNT));
-	// color += max(texture(galaxy_far_tex, uv), 0.0) * (1.0-color.a);
-	ADDTEX(galaxy_far_tex, uv);
+	// if (camera.level >= E_VIEW_LAYER_PLANET_ORBIT){
+	// 	ADDTEX(planets_near_tex, uv);
+	// }
+    //
+	// if (camera.level >= E_VIEW_LAYER_STAR_ORBIT){
+	// 	// color += max(texture(planets_far_tex, uv), 0.0) * (1.0-color.a);
+	// 	// color += max(texture(solar_system_rings_tex, uv), 0.0) * (1.0-color.a);
+	// 	ADDTEX(planets_far_tex, uv);
+	// 	ADDTEX(solar_system_rings_tex, uv);
+	// }
+    //
+	// if (camera.level >= E_VIEW_LAYER_GALAXY){
+	// 	// color += max(texture(stars_tex, uv), 0.0) * (1.0-color.a);
+	// 	// color += max(texture(taa_tex, uv), 0.0) * (1.0-color.a);
+	// 	ADDTEX(stars_tex, uv);
+	// 	ADDTEX(taa_tex, uv);
+	// }
+    //
+	// // float fadeout = mix(1.0, 0.1, easeOutExpo(max(camera.level-E_VIEW_LAYER_UNIVERSE, 0.0)/E_VIEW_LAYERS_COUNT));
+	// // color += max(texture(galaxy_far_tex, uv), 0.0) * (1.0-color.a);
+	// ADDTEX(galaxy_far_tex, uv);
 	// color += texture(nebula_far_tex, uv) * (1.0-color.a);
+
+    ADDTEX(primitives_tex, uv);
+    ADDTEX(depthless_tex, uv);
+    ADDTEX(taa_tex, uv);
+    ADDTEX(worldui_tex, uv);
+    // ADDTEX(raymarch_tex, uv);
+    // color += max(texture(raymarch_tex, uv), 0.0) * (1.0-color.a);
 
 	return clamp(color, 0.0, 1.0);
 }

@@ -211,7 +211,7 @@ HXShaderInput stars_particles_inputs[3];
 
 
 void StarsParticleGrid::Init(Application& app){
-	totalsize = _STARS_BLOCK_STAR_COUNT*_STARS_BLOCK_STAR_COUNT*_STARS_BLOCK_STAR_COUNT * 27;
+	totalsize = _STARS_BLOCK_STAR_COUNT*_STARS_BLOCK_STAR_COUNT*_STARS_BLOCK_STAR_COUNT * _STARS_BLOCK_COUNT;
 
 	grid.last_grid_pos = uni_ivec3(0);
 
@@ -238,7 +238,7 @@ void StarsParticleGrid::Init(Application& app){
 
 
 	local_renderpos = app.hxg.CreateStorageBuffer(
-		HXSBufferConfig{ 27*sizeof(StarBlock), HX_GRAPHICS_USAGE_DYNAMIC }, NULL
+		HXSBufferConfig{ _STARS_BLOCK_COUNT*sizeof(StarBlock), HX_GRAPHICS_USAGE_DYNAMIC }, NULL
 	);
 	app.hxg.MapStorageBuffer(local_renderpos, 0, app.hxg.GetConfig(local_renderpos).Size, HX_GRAPHICS_MEM_ACCESS_W);
 	app.hxg.UnmapStorageBuffer(local_renderpos);
@@ -300,8 +300,8 @@ void StarsParticleGrid::Update(Application& app, uni_vec3 absolute_cam_pos){
 	if (updateGrid){
 		grid.last_grid_pos = grid_cam_pos;
 
-		for (int i=0; i<27; ++i){
-			uni_ivec3 block_cell = uni_ivec3(ind_1Dto3D(i, ivec3(3)) - ivec3(1)) + grid.last_grid_pos;
+		for (int i=0; i<_STARS_BLOCK_COUNT; ++i){
+			uni_ivec3 block_cell = uni_ivec3(ind_1Dto3D(i, ivec3(_STARS_BLOCK_WIDTH)) - ivec3(_STARS_BLOCK_WIDTH/2)) + grid.last_grid_pos;
 			uni_vec3 tp = uni_vec3(block_cell * uni_int(_STARS_BLOCK_STAR_COUNT * _STARS_SPACING_FACTOR));
 
 			uint seed = ConstructBasicSeed(ivec4(block_cell, galaxy->seed));
@@ -317,8 +317,8 @@ void StarsParticleGrid::Update(Application& app, uni_vec3 absolute_cam_pos){
 		}
 	}
 
-	for (int i=0; i<27; ++i){
-		uni_ivec3 block_cell = uni_ivec3(ind_1Dto3D(i, ivec3(3)) - ivec3(1)) + grid.last_grid_pos;
+	for (int i=0; i<_STARS_BLOCK_COUNT; ++i){
+		uni_ivec3 block_cell = uni_ivec3(ind_1Dto3D(i, ivec3(_STARS_BLOCK_WIDTH)) - ivec3(_STARS_BLOCK_WIDTH/2)) + grid.last_grid_pos;
 		uni_vec3 tp = uni_vec3(block_cell * uni_int(_STARS_BLOCK_STAR_COUNT * _STARS_SPACING_FACTOR));
 
 		mapped[i].renderpos = mulvq(galaxy->props.rotation, tp - absolute_cam_pos);
@@ -355,72 +355,4 @@ void StarsParticleGrid::Update(Application& app, uni_vec3 absolute_cam_pos){
 		uni_vec3 dpos = app.camera.view.eye.get(E_VIEW_LAYER_STAR_ORBIT);
 		closest_renderpos = vec3(uni_vec3(0) - dpos) / float(CameraViewpoint::GetScaleDiff(E_VIEW_LAYER_GALAXY, E_VIEW_LAYER_STAR_ORBIT));
 	}
-}
-
-
-
-/// TODO: remove this, it's not in use
-void StarsParticleGrid::ReconstructGrid(Application& app, uni_vec3 absolute_cam_pos){
-	// absolute_cam_pos = mulvq(galaxy->props.rotationInv, absolute_cam_pos);
-	// uni_ivec3 grid_cam_pos = floor(absolute_cam_pos/double(star_block_size * _STARS_SPACING_FACTOR) + 0.5);
-	//
-	// if (grid_cam_pos != grid.last_grid_pos){
-	// 	grid.push_constant.parentRot = galaxy->props.rotation;
-	// 	grid.push_constant.parentRotInv = galaxy->props.rotationInv;
-	// 	grid.push_constant.grid_cam_pos = ivec3(grid_cam_pos);
-	// 	grid.push_constant.parentSeed = galaxy->props.seed;
-	// 	grid.push_constant.block_size = uint(star_block_size);
-	//
-	// 	app.hxg.ExecuteComputeCommands(grid.pipeline, grid.cmdbuff);
-	//
-	// 	grid.last_grid_pos = grid_cam_pos;
-	//
-	// 	std::cout <<
-	// 	grid.last_grid_pos.x << " -- " <<
-	// 	grid.last_grid_pos.y << " -- " <<
-	// 	grid.last_grid_pos.z
-	// 	<< '\n';
-	// }
-
-
-	/// get closest particle
-
-
-	// StarParticle* mapped = (StarParticle*)app.hxg.MapStorageBuffer(gpu_buffer, 0, app.hxg.GetConfig(gpu_buffer).Size, HX_GRAPHICS_MEM_ACCESS_W);
-	//
-	//
-	// // absolute_cam_pos = mulvq(parentRotInv, absolute_cam_pos);
-	// // uni_ivec3 grid_cam_pos = absolute_cam_pos;
-	//
-	// const GalaxyParticle& galaxy = *((GalaxyParticle*)parent);
-	//
-	// for (size_t i=0; i<count; ++i){
-	//
-	// 	uint32_t index = uint32_t(i);
-	// 	uint32_t seed = uint32_t(index*1973u + index*9277u + index*10195u) | 1u;
-	// 	seed = seed + galaxy.seed;
-	//
-	// 	// uni_vec3 p = uni_vec3(frandom(seed), frandom(seed), frandom(seed)) - 0.5;
-	// 	// p = normalize(p);
-	//     // p *= pow(frandom(seed), 1.0/3.0);
-	//
-	// 	float pie = Mathgl::pi<float>();
-	// 	float angle = frandom(seed);
-	// 	float radius = pow(frandom(seed), 1.0f/2.0f);
-	// 	uni_vec3 p = uni_vec3( cos(angle*pie*2)*radius, pow(frandom(seed)*2.0-1.0, 3.0), sin(angle*pie*2)*radius );
-	//
-	// 	p = mulvq(parentRot, p);
-	// 	p *= galaxy.radius * 10.0f;
-	//
-	// 	StarParticle pt{};
-	// 	UniverseObjectComponent pos{};
-	//
-	// 	pt.seed = seed;
-	// 	pos.absolute_pos = p;
-	// 	pt.renderpos = vec3(p);
-	// 	mapped[i] = pt;
-	// }
-	//
-	//
-	// app.hxg.UnmapStorageBuffer(gpu_buffer);
 }
